@@ -41,6 +41,13 @@ import {
 import { Input } from "@/components/ui/input"
 import { Separator } from "@/components/ui/separator"
 import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectTrigger,
+} from "@/components/ui/select"
+import {
   Sheet,
   SheetContent,
   SheetDescription,
@@ -110,10 +117,20 @@ type QueryPatch = {
   q?: string
   type?: CustomerTicketTypeFilter
   priority?: CustomerTicketPriorityFilter
-  requestDate?: string
+  requestDate?: RequestDateFilterValue
+  requestDateFrom?: string
+  requestDateTo?: string
 }
 
 type CustomerRightPanelSection = "details" | "company" | "filters"
+type RequestDateFilterValue =
+  | "all"
+  | "last-7-days"
+  | "last-30-days"
+  | "last-90-days"
+  | "this-year"
+  | "older-than-90-days"
+  | "custom-range"
 
 const detailTabLabel: Record<CustomerDetailTab, string> = {
   ticket: "Tickets",
@@ -129,6 +146,52 @@ const customerRightPanelSections: Array<
   { value: "company", label: "Company", icon: IconBuilding },
   { value: "filters", label: "Ticket Filters", icon: IconFilter },
 ]
+
+const requestDateFilterOptions: Array<{
+  value: RequestDateFilterValue
+  label: string
+  description: string
+}> = [
+  {
+    value: "all",
+    label: "Any time",
+    description: "Show all request dates",
+  },
+  {
+    value: "last-7-days",
+    label: "Last 7 days",
+    description: "Newest requests in the account timeline",
+  },
+  {
+    value: "last-30-days",
+    label: "Last 30 days",
+    description: "Recent customer activity",
+  },
+  {
+    value: "last-90-days",
+    label: "Last 90 days",
+    description: "Current quarter window",
+  },
+  {
+    value: "this-year",
+    label: "This year",
+    description: "Requests from the same year",
+  },
+  {
+    value: "older-than-90-days",
+    label: "Older than 90 days",
+    description: "Long-running or historical tickets",
+  },
+  {
+    value: "custom-range",
+    label: "Custom range",
+    description: "Choose a start and end date",
+  },
+]
+
+const requestDateFilterLabels = Object.fromEntries(
+  requestDateFilterOptions.map((option) => [option.value, option.label])
+) as Record<RequestDateFilterValue, string>
 
 const responseToneClassName = {
   "Slow response":
@@ -147,6 +210,119 @@ function formatTodayRequestDateLabel() {
     day: "2-digit",
     year: "numeric",
   }).format(new Date())
+}
+
+function formatDateInputValue(date: Date) {
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, "0")
+  const day = String(date.getDate()).padStart(2, "0")
+
+  return `${year}-${month}-${day}`
+}
+
+function parseDateInputValue(value: string) {
+  if (!value) return null
+
+  const [yearRaw, monthRaw, dayRaw] = value.split("-")
+  const year = Number(yearRaw)
+  const month = Number(monthRaw)
+  const day = Number(dayRaw)
+
+  if (
+    !Number.isFinite(year) ||
+    !Number.isFinite(month) ||
+    !Number.isFinite(day)
+  ) {
+    return null
+  }
+
+  return new Date(year, month - 1, day)
+}
+
+function parseRequestDate(value: string) {
+  const [monthRaw, dayRaw, yearRaw] = value.split("/")
+  const month = Number(monthRaw)
+  const day = Number(dayRaw)
+  const year = Number(yearRaw)
+
+  if (
+    !Number.isFinite(month) ||
+    !Number.isFinite(day) ||
+    !Number.isFinite(year)
+  ) {
+    return null
+  }
+
+  return new Date(year, month - 1, day)
+}
+
+function getLatestRequestDate(rows: CustomerTicketRow[]) {
+  return rows.reduce<Date | null>((latestDate, row) => {
+    const requestDate = parseRequestDate(row.requestDate)
+    if (!requestDate) return latestDate
+
+    if (!latestDate || requestDate.getTime() > latestDate.getTime()) {
+      return requestDate
+    }
+
+    return latestDate
+  }, null)
+}
+
+function matchesRequestDatePreset({
+  rowRequestDate,
+  filter,
+  latestRequestDate,
+  customFrom,
+  customTo,
+}: {
+  rowRequestDate: string
+  filter: RequestDateFilterValue
+  latestRequestDate: Date | null
+  customFrom?: string
+  customTo?: string
+}) {
+  if (filter === "all") return true
+
+  const requestDate = parseRequestDate(rowRequestDate)
+  if (!requestDate) return false
+
+  if (filter === "custom-range") {
+    const fromDate = parseDateInputValue(customFrom ?? "")
+    const toDate = parseDateInputValue(customTo ?? "")
+
+    if (fromDate && requestDate < fromDate) return false
+    if (toDate && requestDate > toDate) return false
+
+    return Boolean(fromDate || toDate)
+  }
+
+  if (!latestRequestDate) return false
+
+  if (filter === "this-year") {
+    return requestDate.getFullYear() === latestRequestDate.getFullYear()
+  }
+
+  const daysFromLatest =
+    (latestRequestDate.getTime() - requestDate.getTime()) /
+    (1000 * 60 * 60 * 24)
+
+  if (filter === "older-than-90-days") return daysFromLatest > 90
+  if (filter === "last-90-days") return daysFromLatest >= 0 && daysFromLatest <= 90
+  if (filter === "last-30-days") return daysFromLatest >= 0 && daysFromLatest <= 30
+  if (filter === "last-7-days") return daysFromLatest >= 0 && daysFromLatest <= 7
+
+  return true
+}
+
+function normalizeRequestDateFilter(
+  value: string | null | undefined
+): RequestDateFilterValue {
+  const matchedOption = requestDateFilterOptions.find(
+    (option) => option.value === value
+  )
+
+  return matchedOption?.value ?? "all"
 }
 
 function extractCustomerTicketSequence(value: string) {
@@ -326,7 +502,9 @@ function formatCurrency(value: number) {
 function formatFilterLabel(
   typeFilter: CustomerTicketTypeFilter,
   priorityFilter: CustomerTicketPriorityFilter,
-  requestDateFilter: string
+  requestDateFilter: RequestDateFilterValue,
+  requestDateFrom: string,
+  requestDateTo: string
 ) {
   const labels: string[] = []
 
@@ -334,7 +512,17 @@ function formatFilterLabel(
   if (priorityFilter !== "all") {
     labels.push(`${priorityFilter[0].toUpperCase()}${priorityFilter.slice(1)}`)
   }
-  if (requestDateFilter !== "all") labels.push(requestDateFilter)
+  if (requestDateFilter === "custom-range") {
+    if (requestDateFrom && requestDateTo) {
+      labels.push("Custom date")
+    } else if (requestDateFrom) {
+      labels.push("From date")
+    } else if (requestDateTo) {
+      labels.push("Until date")
+    }
+  } else if (requestDateFilter !== "all") {
+    labels.push(requestDateFilterLabels[requestDateFilter])
+  }
 
   if (labels.length === 0) return "Filter"
   return `Filter (${labels.length})`
@@ -462,21 +650,27 @@ function CustomerTicketFilterPanel({
   draftTypeFilter,
   draftPriorityFilter,
   draftRequestDateFilter,
-  requestDateOptions,
+  draftRequestDateFrom,
+  draftRequestDateTo,
   onTypeChange,
   onPriorityChange,
   onRequestDateChange,
+  onRequestDateFromChange,
+  onRequestDateToChange,
   onReset,
   onApply,
   className,
 }: {
   draftTypeFilter: CustomerTicketTypeFilter
   draftPriorityFilter: CustomerTicketPriorityFilter
-  draftRequestDateFilter: string
-  requestDateOptions: string[]
+  draftRequestDateFilter: RequestDateFilterValue
+  draftRequestDateFrom: string
+  draftRequestDateTo: string
   onTypeChange: (nextValue: CustomerTicketTypeFilter) => void
   onPriorityChange: (nextValue: CustomerTicketPriorityFilter) => void
-  onRequestDateChange: (nextValue: string) => void
+  onRequestDateChange: (nextValue: RequestDateFilterValue) => void
+  onRequestDateFromChange: (nextValue: string) => void
+  onRequestDateToChange: (nextValue: string) => void
   onReset: () => void
   onApply: () => void
   className?: string
@@ -558,23 +752,56 @@ function CustomerTicketFilterPanel({
         <p className="mb-2 text-xs tracking-wide text-muted-foreground uppercase">
           Request Date
         </p>
-        <div className="flex flex-wrap gap-2">
-          {requestDateOptions.map((requestDateOption) => (
-            <Button
-              key={requestDateOption}
-              variant={
-                draftRequestDateFilter === requestDateOption
-                  ? "secondary"
-                  : "outline"
-              }
-              size="sm"
-              className="h-8 rounded-full"
-              onClick={() => onRequestDateChange(requestDateOption)}
-            >
-              {requestDateOption === "all" ? "All" : requestDateOption}
-            </Button>
-          ))}
-        </div>
+        <Select
+          value={draftRequestDateFilter}
+          onValueChange={(value) =>
+            onRequestDateChange(normalizeRequestDateFilter(value))
+          }
+        >
+          <SelectTrigger className="h-10 w-full rounded-xl border-border/70 bg-background px-3.5 shadow-none">
+            <span className="truncate">
+              {requestDateFilterLabels[draftRequestDateFilter]}
+            </span>
+          </SelectTrigger>
+          <SelectContent align="start" className="min-w-64">
+            <SelectGroup>
+              {requestDateFilterOptions.map((option) => (
+                <SelectItem key={option.value} value={option.value}>
+                  <span className="flex min-w-0 flex-col items-start gap-0.5">
+                    <span>{option.label}</span>
+                    <span className="text-xs font-normal text-muted-foreground">
+                      {option.description}
+                    </span>
+                  </span>
+                </SelectItem>
+              ))}
+            </SelectGroup>
+          </SelectContent>
+        </Select>
+        {draftRequestDateFilter === "custom-range" ? (
+          <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
+            <label className="space-y-1.5">
+              <span className="text-xs text-muted-foreground">From</span>
+              <Input
+                type="date"
+                value={draftRequestDateFrom}
+                onChange={(event) =>
+                  onRequestDateFromChange(event.target.value)
+                }
+                className="h-10 rounded-xl bg-background"
+              />
+            </label>
+            <label className="space-y-1.5">
+              <span className="text-xs text-muted-foreground">To</span>
+              <Input
+                type="date"
+                value={draftRequestDateTo}
+                onChange={(event) => onRequestDateToChange(event.target.value)}
+                className="h-10 rounded-xl bg-background"
+              />
+            </label>
+          </div>
+        ) : null}
       </div>
 
       <Button className="w-full rounded-xl" onClick={onApply}>
@@ -602,7 +829,10 @@ export function CustomerDetailPage({
     useState<CustomerTicketTypeFilter>(initialType)
   const [draftPriorityFilter, setDraftPriorityFilter] =
     useState<CustomerTicketPriorityFilter>(initialPriority)
-  const [draftRequestDateFilter, setDraftRequestDateFilter] = useState("all")
+  const [draftRequestDateFilter, setDraftRequestDateFilter] =
+    useState<RequestDateFilterValue>("all")
+  const [draftRequestDateFrom, setDraftRequestDateFrom] = useState("")
+  const [draftRequestDateTo, setDraftRequestDateTo] = useState("")
   const [selectedTicketIds, setSelectedTicketIds] = useState<string[]>([])
   const [isMobileFilterOpen, setIsMobileFilterOpen] = useState(false)
   const [isDesktopRightPanelOpen, setIsDesktopRightPanelOpen] = useState(true)
@@ -683,17 +913,6 @@ export function CustomerDetailPage({
     }
   }, [attachmentStorageKey, attachments])
 
-  useEffect(() => {
-    setTicketRows(buildCustomerTicketRows(customer))
-    setSelectedTicketIds([])
-    setDrawerTicketsById({})
-    setActiveDrawerTicketId(null)
-    setCustomerDrawerMode("create")
-    setCustomerDrawerOrigin(null)
-    setDrawerDraftsByTicketId({})
-    setDrawerReplyFromByTicketId({})
-  }, [customer.id])
-
   const activityItems = useMemo(() => buildActivityItems(customer), [customer])
   const allTicketRows = ticketRows
   const activeDrawerTicket = activeDrawerTicketId
@@ -764,9 +983,6 @@ export function CustomerDetailPage({
       left.name.localeCompare(right.name)
     )
   }, [
-    currentUser.avatar,
-    currentUser.email,
-    currentUser.name,
     customer.owner.avatarUrl,
     customer.owner.email,
     customer.owner.name,
@@ -774,11 +990,8 @@ export function CustomerDetailPage({
     customer.primaryContactName,
     drawerTicketsById,
   ])
-  const requestDateOptions = useMemo(
-    () => [
-      "all",
-      ...Array.from(new Set(allTicketRows.map((row) => row.requestDate))),
-    ],
+  const latestRequestDate = useMemo(
+    () => getLatestRequestDate(allTicketRows),
     [allTicketRows]
   )
   const activeTab = searchParams.has("tab")
@@ -791,11 +1004,11 @@ export function CustomerDetailPage({
   const appliedPriorityFilter = searchParams.has("priority")
     ? normalizeCustomerTicketPriorityFilter(searchParams.get("priority"))
     : initialPriority
-  const appliedRequestDateFilter = requestDateOptions.includes(
-    searchParams.get("requestDate") ?? ""
+  const appliedRequestDateFilter = normalizeRequestDateFilter(
+    searchParams.get("requestDate")
   )
-    ? (searchParams.get("requestDate") ?? "all")
-    : "all"
+  const appliedRequestDateFrom = searchParams.get("requestDateFrom") ?? ""
+  const appliedRequestDateTo = searchParams.get("requestDateTo") ?? ""
   const summaryMetrics = useMemo(() => buildCustomerDetailMetrics(customer), [customer])
 
   const filteredTicketRows = useMemo(() => {
@@ -815,10 +1028,13 @@ export function CustomerDetailPage({
         appliedPriorityFilter === "all"
           ? true
           : row.priority === appliedPriorityFilter
-      const matchesRequestDate =
-        appliedRequestDateFilter === "all"
-          ? true
-          : row.requestDate === appliedRequestDateFilter
+      const matchesRequestDate = matchesRequestDatePreset({
+        rowRequestDate: row.requestDate,
+        filter: appliedRequestDateFilter,
+        latestRequestDate,
+        customFrom: appliedRequestDateFrom,
+        customTo: appliedRequestDateTo,
+      })
 
       return (
         matchesQuery && matchesType && matchesPriority && matchesRequestDate
@@ -827,8 +1043,11 @@ export function CustomerDetailPage({
   }, [
     allTicketRows,
     appliedPriorityFilter,
+    appliedRequestDateFrom,
     appliedRequestDateFilter,
+    appliedRequestDateTo,
     appliedTypeFilter,
+    latestRequestDate,
     query,
   ])
 
@@ -845,6 +1064,9 @@ export function CustomerDetailPage({
     const nextType = patch.type ?? appliedTypeFilter
     const nextPriority = patch.priority ?? appliedPriorityFilter
     const nextRequestDate = patch.requestDate ?? appliedRequestDateFilter
+    const nextRequestDateFrom =
+      patch.requestDateFrom ?? appliedRequestDateFrom
+    const nextRequestDateTo = patch.requestDateTo ?? appliedRequestDateTo
 
     if (nextTab === "ticket") {
       nextParams.delete("tab")
@@ -876,6 +1098,18 @@ export function CustomerDetailPage({
       nextParams.set("requestDate", nextRequestDate)
     }
 
+    if (nextRequestDate === "custom-range" && nextRequestDateFrom) {
+      nextParams.set("requestDateFrom", nextRequestDateFrom)
+    } else {
+      nextParams.delete("requestDateFrom")
+    }
+
+    if (nextRequestDate === "custom-range" && nextRequestDateTo) {
+      nextParams.set("requestDateTo", nextRequestDateTo)
+    } else {
+      nextParams.delete("requestDateTo")
+    }
+
     const nextQueryString = nextParams.toString()
     router.replace(
       nextQueryString.length > 0 ? `${pathname}?${nextQueryString}` : pathname,
@@ -900,6 +1134,8 @@ export function CustomerDetailPage({
       type: draftTypeFilter,
       priority: draftPriorityFilter,
       requestDate: draftRequestDateFilter,
+      requestDateFrom: draftRequestDateFrom,
+      requestDateTo: draftRequestDateTo,
     })
     setIsMobileFilterOpen(false)
   }
@@ -1125,6 +1361,8 @@ export function CustomerDetailPage({
     setDraftTypeFilter(appliedTypeFilter)
     setDraftPriorityFilter(appliedPriorityFilter)
     setDraftRequestDateFilter(appliedRequestDateFilter)
+    setDraftRequestDateFrom(appliedRequestDateFrom)
+    setDraftRequestDateTo(appliedRequestDateTo)
 
     if (isMobile) {
       setIsMobileFilterOpen(true)
@@ -1147,14 +1385,38 @@ export function CustomerDetailPage({
       draftTypeFilter={draftTypeFilter}
       draftPriorityFilter={draftPriorityFilter}
       draftRequestDateFilter={draftRequestDateFilter}
-      requestDateOptions={requestDateOptions}
+      draftRequestDateFrom={draftRequestDateFrom}
+      draftRequestDateTo={draftRequestDateTo}
       onTypeChange={setDraftTypeFilter}
       onPriorityChange={setDraftPriorityFilter}
-      onRequestDateChange={setDraftRequestDateFilter}
+      onRequestDateChange={(nextValue) => {
+        setDraftRequestDateFilter(nextValue)
+
+        if (nextValue === "custom-range") {
+          const latestDate = latestRequestDate ?? new Date()
+          const fromDate = new Date(latestDate)
+          fromDate.setDate(fromDate.getDate() - 90)
+
+          setDraftRequestDateFrom((currentValue) =>
+            currentValue || formatDateInputValue(fromDate)
+          )
+          setDraftRequestDateTo((currentValue) =>
+            currentValue || formatDateInputValue(latestDate)
+          )
+          return
+        }
+
+        setDraftRequestDateFrom("")
+        setDraftRequestDateTo("")
+      }}
+      onRequestDateFromChange={setDraftRequestDateFrom}
+      onRequestDateToChange={setDraftRequestDateTo}
       onReset={() => {
         setDraftTypeFilter("all")
         setDraftPriorityFilter("all")
         setDraftRequestDateFilter("all")
+        setDraftRequestDateFrom("")
+        setDraftRequestDateTo("")
       }}
       onApply={applyTicketFilters}
     />
@@ -1333,7 +1595,9 @@ export function CustomerDetailPage({
                         {formatFilterLabel(
                           appliedTypeFilter,
                           appliedPriorityFilter,
-                          appliedRequestDateFilter
+                          appliedRequestDateFilter,
+                          appliedRequestDateFrom,
+                          appliedRequestDateTo
                         )}
                       </Button>
                       <Button
@@ -1354,10 +1618,14 @@ export function CustomerDetailPage({
                             setDraftTypeFilter("all")
                             setDraftPriorityFilter("all")
                             setDraftRequestDateFilter("all")
+                            setDraftRequestDateFrom("")
+                            setDraftRequestDateTo("")
                             replaceQuery({
                               type: "all",
                               priority: "all",
                               requestDate: "all",
+                              requestDateFrom: "",
+                              requestDateTo: "",
                             })
                           }}
                         >
@@ -1543,6 +1811,8 @@ export function CustomerDetailPage({
               setDraftTypeFilter(appliedTypeFilter)
               setDraftPriorityFilter(appliedPriorityFilter)
               setDraftRequestDateFilter(appliedRequestDateFilter)
+              setDraftRequestDateFrom(appliedRequestDateFrom)
+              setDraftRequestDateTo(appliedRequestDateTo)
             }
 
             setActiveRightPanelSection(nextSection)
