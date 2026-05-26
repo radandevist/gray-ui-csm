@@ -1,6 +1,14 @@
 import type { KnowledgeArticle } from "@/lib/knowledge-base/types"
 import type { Ticket } from "@/lib/tickets/types"
 
+const sharedPreviewImage = {
+  type: "image" as const,
+  title: "Billing workspace overview",
+  caption:
+    "Gradient mock showing the subscription workspace, seat allocation, and invoice preview area.",
+  src: "/knowledge-base/billing-seat-wallpaper.png",
+}
+
 export const knowledgeArticles: KnowledgeArticle[] = [
   {
     id: "kb-return-refund-policy",
@@ -22,6 +30,7 @@ export const knowledgeArticles: KnowledgeArticle[] = [
         type: "image",
         title: "Return request screen",
         caption: "Example state after a customer selects the order to return.",
+        src: "/knowledge-base/billing-seat-wallpaper.png",
       },
       {
         type: "video",
@@ -65,6 +74,7 @@ export const knowledgeArticles: KnowledgeArticle[] = [
     linkedTickets: 7,
     matchReasons: ["cancel order", "processing", "wrong item"],
     quickPath: "Account > Orders > Processing orders > Cancel order",
+    media: [sharedPreviewImage],
     sections: [
       {
         title: "When cancellation is available",
@@ -93,6 +103,7 @@ export const knowledgeArticles: KnowledgeArticle[] = [
     linkedTickets: 5,
     matchReasons: ["exchange", "variant", "wrong color"],
     quickPath: "Support portal > Orders > Exchange item",
+    media: [sharedPreviewImage],
     sections: [
       {
         title: "Exchange requirements",
@@ -122,13 +133,7 @@ export const knowledgeArticles: KnowledgeArticle[] = [
     matchReasons: ["subscription", "seat", "billing", "invoice"],
     quickPath: "Admin Center > Account > Billing > Subscription",
     media: [
-      {
-        type: "image",
-        title: "Billing workspace overview",
-        caption:
-          "Gradient mock showing the subscription workspace, seat allocation, and invoice preview area.",
-        src: "/knowledge-base/billing-seat-wallpaper.png",
-      },
+      sharedPreviewImage,
     ],
     sections: [
       {
@@ -178,6 +183,7 @@ export const knowledgeArticles: KnowledgeArticle[] = [
     linkedTickets: 9,
     matchReasons: ["login", "access", "password", "reset"],
     quickPath: "Sign in > Forgot password > Verify email",
+    media: [sharedPreviewImage],
     sections: [
       {
         title: "Self-service reset",
@@ -206,6 +212,7 @@ export const knowledgeArticles: KnowledgeArticle[] = [
     linkedTickets: 11,
     matchReasons: ["2fa", "backup code", "authenticator", "recovery"],
     quickPath: "Profile > Security > Backup codes",
+    media: [sharedPreviewImage],
     sections: [
       {
         title: "Use backup codes first",
@@ -234,6 +241,7 @@ export const knowledgeArticles: KnowledgeArticle[] = [
     linkedTickets: 14,
     matchReasons: ["payment failed", "renewal", "card", "invoice"],
     quickPath: "Admin Center > Billing > Invoices",
+    media: [sharedPreviewImage],
     sections: [
       {
         title: "Common reasons",
@@ -262,6 +270,7 @@ export const knowledgeArticles: KnowledgeArticle[] = [
     linkedTickets: 8,
     matchReasons: ["invoice", "vat", "tax id", "pdf"],
     quickPath: "Admin Center > Billing > Invoices > Download PDF",
+    media: [sharedPreviewImage],
     sections: [
       {
         title: "Invoice availability",
@@ -290,6 +299,7 @@ export const knowledgeArticles: KnowledgeArticle[] = [
     linkedTickets: 19,
     matchReasons: ["api", "rate limit", "429", "retry"],
     quickPath: "Developer docs > API limits",
+    media: [sharedPreviewImage],
     sections: [
       {
         title: "Limit model",
@@ -318,6 +328,7 @@ export const knowledgeArticles: KnowledgeArticle[] = [
     linkedTickets: 6,
     matchReasons: ["webhook", "signature", "invalid", "secret"],
     quickPath: "Developer docs > Webhooks > Security",
+    media: [sharedPreviewImage],
     sections: [
       {
         title: "Raw payload requirement",
@@ -346,6 +357,7 @@ export const knowledgeArticles: KnowledgeArticle[] = [
     linkedTickets: 5,
     matchReasons: ["plan", "annual", "monthly", "downgrade"],
     quickPath: "Admin Center > Billing > Subscription > Change plan",
+    media: [sharedPreviewImage],
     sections: [
       {
         title: "Effective date",
@@ -374,6 +386,7 @@ export const knowledgeArticles: KnowledgeArticle[] = [
     linkedTickets: 10,
     matchReasons: ["owner", "transfer", "admin", "workspace"],
     quickPath: "Admin Center > Members > Roles",
+    media: [sharedPreviewImage],
     sections: [
       {
         title: "Prerequisites",

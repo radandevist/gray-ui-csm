@@ -1,16 +1,11 @@
 import * as React from "react"
-import Image from "next/image"
 import {
-  IconArrowLeft,
   IconChevronDown,
-  IconCopy,
-  IconDots,
   IconFileText,
   IconMicrophone,
   IconMoodSmile,
   IconPaperclip,
   IconPhoto,
-  IconPlus,
   IconSearch,
   IconSend,
   IconUsers,
@@ -52,7 +47,6 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { Input } from "@/components/ui/input"
 import { Separator } from "@/components/ui/separator"
-import { knowledgeArticles } from "@/lib/knowledge-base/mock-data"
 import type { KnowledgeArticle } from "@/lib/knowledge-base/types"
 import type {
   TicketDetail,
@@ -69,6 +63,11 @@ import type {
 } from "@/lib/tickets/types"
 import { cn } from "@/lib/utils"
 import { getInitials } from "./ticket-detail-helpers"
+import { TicketKnowledgePanel } from "./ticket-knowledge-panel"
+import {
+  getKnowledgeArticleCategoryLabel,
+  getKnowledgeArticleUrl,
+} from "./ticket-knowledge-helpers"
 
 type PersonLike = { name: string; avatarUrl?: string; email?: string }
 
@@ -77,6 +76,8 @@ type ReplyAccount = {
   label: string
   description: string
 }
+
+const PENDING_REPLY_REVEAL_DELAY_MS = 180
 
 export function TimelineAvatar({
   person,
@@ -256,6 +257,8 @@ function ComposerShell({
 
 export function ConversationTabContent({
   conversationItems,
+  pendingReply,
+  isSendingReply,
   ticket,
   currentUser,
   replyAccounts,
@@ -272,6 +275,12 @@ export function ConversationTabContent({
   onSubmitReply,
 }: {
   conversationItems: Array<TicketTimelineMessage | TicketTimelineEvent>
+  pendingReply?: {
+    id: string
+    body: string
+    linkedArticle?: TicketLinkedArticle
+  } | null
+  isSendingReply: boolean
   ticket: Ticket
   currentUser: PersonLike
   replyAccounts: readonly ReplyAccount[]
@@ -287,13 +296,74 @@ export function ConversationTabContent({
   onMacroInsert: (macro: string) => void
   onSubmitReply: (nextStatus?: TicketQueueStatus) => void
 }) {
+  const scrollContainerRef = React.useRef<HTMLDivElement | null>(null)
+  const bottomAnchorRef = React.useRef<HTMLDivElement | null>(null)
+  const revealTimeoutRef = React.useRef<ReturnType<typeof setTimeout> | null>(null)
+  const [visiblePendingReply, setVisiblePendingReply] =
+    React.useState<typeof pendingReply>(null)
+
   const filteredMacros = macroSuggestions.filter((macro) =>
     macro.toLowerCase().includes(templateQuery.trim().toLowerCase())
   )
 
+  React.useEffect(() => {
+    return () => {
+      if (revealTimeoutRef.current) {
+        clearTimeout(revealTimeoutRef.current)
+      }
+    }
+  }, [])
+
+  React.useEffect(() => {
+    if (!pendingReply) {
+      setVisiblePendingReply(null)
+      if (revealTimeoutRef.current) {
+        clearTimeout(revealTimeoutRef.current)
+      }
+      return
+    }
+
+    const scrollContainer = scrollContainerRef.current
+    if (revealTimeoutRef.current) {
+      clearTimeout(revealTimeoutRef.current)
+    }
+
+    setVisiblePendingReply(null)
+
+    if (scrollContainer) {
+      scrollContainer.scrollTo({
+        top: scrollContainer.scrollHeight,
+        behavior: "smooth",
+      })
+    }
+
+    revealTimeoutRef.current = setTimeout(() => {
+      setVisiblePendingReply(pendingReply)
+    }, PENDING_REPLY_REVEAL_DELAY_MS)
+  }, [pendingReply])
+
+  React.useEffect(() => {
+    const bottomAnchor = bottomAnchorRef.current
+    if (!bottomAnchor) return
+
+    const frameId = window.requestAnimationFrame(() => {
+      bottomAnchor.scrollIntoView({
+        behavior: "smooth",
+        block: "end",
+      })
+    })
+
+    return () => {
+      window.cancelAnimationFrame(frameId)
+    }
+  }, [visiblePendingReply, conversationItems.length])
+
   return (
     <>
-      <div className="scrollbar-hidden min-h-0 flex-1 overflow-y-auto px-6 py-6">
+      <div
+        ref={scrollContainerRef}
+        className="scrollbar-hidden min-h-0 flex-1 overflow-y-auto px-6 py-6"
+      >
         <div className="space-y-8">
           {conversationItems.map((item) => {
             if (item.kind === "message") {
@@ -307,6 +377,29 @@ export function ConversationTabContent({
               />
             )
           })}
+          {visiblePendingReply ? (
+            <div
+              key={visiblePendingReply.id}
+              className="animate-in fade-in-0 slide-in-from-bottom-3 duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]"
+            >
+              <TimelineEntry
+                author={currentUser}
+                timestamp="Sending..."
+                body={visiblePendingReply.body}
+                linkedArticle={visiblePendingReply.linkedArticle}
+                className="opacity-72 transition-opacity"
+                badges={
+                  <Badge
+                    variant="secondary"
+                    className="h-5 rounded-full px-2 text-[11px]"
+                  >
+                    Sending
+                  </Badge>
+                }
+              />
+            </div>
+          ) : null}
+          <div ref={bottomAnchorRef} className="h-px" />
         </div>
       </div>
 
@@ -377,6 +470,7 @@ export function ConversationTabContent({
           value={draftMessage}
           onChange={(event) => onDraftMessageChange(event.target.value)}
           placeholder="Comment or type '/' for commands"
+          disabled={isSendingReply}
           className="min-h-40 w-full resize-none bg-transparent px-4 py-3 text-sm leading-6 text-foreground outline-none placeholder:text-muted-foreground/70"
         />
         {linkedArticle ? (
@@ -384,8 +478,8 @@ export function ConversationTabContent({
             <KnowledgeArticleLinkCard
               article={{
                 title: linkedArticle.title,
-                url: getArticleUrl(linkedArticle),
-                category: getArticleCategoryLabel(linkedArticle),
+                url: getKnowledgeArticleUrl(linkedArticle),
+                category: getKnowledgeArticleCategoryLabel(linkedArticle),
                 summary: linkedArticle.summary,
               }}
             />
@@ -465,6 +559,7 @@ export function ConversationTabContent({
                           onTemplateQueryChange(event.target.value)
                         }
                         placeholder="Search macros"
+                        disabled={isSendingReply}
                         className="h-10 rounded-xl border-border/70 pl-9"
                       />
                     </div>
@@ -479,6 +574,7 @@ export function ConversationTabContent({
                         type="button"
                         className="w-full rounded-xl px-2 py-2 text-left text-sm text-foreground/80 transition hover:bg-muted"
                         onClick={() => onMacroInsert(macro)}
+                        disabled={isSendingReply}
                       >
                         {macro}
                       </button>
@@ -494,16 +590,17 @@ export function ConversationTabContent({
                 variant="ghost"
                 className="h-9 rounded-xl px-3 text-sm font-medium"
                 onClick={() => onSubmitReply("closed")}
+                disabled={isSendingReply}
               >
-                End Chat
+                {isSendingReply ? "Sending..." : "End Chat"}
               </Button>
               <Button
                 type="button"
                 className="h-9 rounded-xl px-4"
                 onClick={() => onSubmitReply()}
-                disabled={!draftMessage.trim()}
+                disabled={!draftMessage.trim() || isSendingReply}
               >
-                Send
+                {isSendingReply ? "Sending..." : "Send"}
                 <IconSend className="size-4" />
               </Button>
             </div>
@@ -599,6 +696,7 @@ export function TicketDetailRightPanel({
   selectedReplyAccountLabel,
   onInsertKnowledgeArticle,
   onCreateKnowledgeArticle,
+  isSendingReply = false,
 }: {
   open: boolean
   onToggleOpen: () => void
@@ -611,6 +709,7 @@ export function TicketDetailRightPanel({
   selectedReplyAccountLabel?: string
   onInsertKnowledgeArticle: (article: KnowledgeArticle) => void
   onCreateKnowledgeArticle: () => void
+  isSendingReply?: boolean
 }) {
   return (
     <DetailRightPanelShell
@@ -720,302 +819,13 @@ export function TicketDetailRightPanel({
 
           {activeSection === "knowledge" ? (
             <TicketKnowledgePanel
-              ticket={ticket}
               onInsertArticle={onInsertKnowledgeArticle}
               onCreateArticle={onCreateKnowledgeArticle}
+              isSendingReply={isSendingReply}
             />
           ) : null}
         </>
       )}
     />
-  )
-}
-
-function TicketKnowledgePanel({
-  ticket: _ticket,
-  onInsertArticle,
-  onCreateArticle,
-}: {
-  ticket: Ticket
-  onInsertArticle: (article: KnowledgeArticle) => void
-  onCreateArticle: () => void
-}) {
-  const [selectedArticle, setSelectedArticle] =
-    React.useState<KnowledgeArticle | null>(null)
-  const [articleQuery, setArticleQuery] = React.useState("")
-  const normalizedQuery = articleQuery.trim().toLowerCase()
-  const filterArticle = (article: KnowledgeArticle) => {
-    if (!normalizedQuery) return true
-
-    return [article.title, article.summary, article.category]
-      .join(" ")
-      .toLowerCase()
-      .includes(normalizedQuery)
-  }
-  const filteredArticles = knowledgeArticles.filter(filterArticle)
-
-  if (selectedArticle) {
-    return (
-      <KnowledgeArticlePreview
-        article={selectedArticle}
-        onBack={() => setSelectedArticle(null)}
-        onInsertArticle={onInsertArticle}
-      />
-    )
-  }
-
-  return (
-    <div className="space-y-5">
-      <div className="flex items-center gap-2">
-        <div className="relative min-w-0 flex-1">
-          <IconSearch className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            value={articleQuery}
-            onChange={(event) => setArticleQuery(event.target.value)}
-            placeholder="Search articles..."
-            className="h-11 rounded-xl border-border/70 bg-background pl-9 text-sm"
-          />
-        </div>
-        <Button
-          type="button"
-          variant="default"
-          size="icon-lg"
-          className="size-11 shrink-0 rounded-xl"
-          onClick={onCreateArticle}
-          aria-label="Create new article"
-        >
-          <IconPlus className="size-4" />
-        </Button>
-      </div>
-
-      <KnowledgeArticleList
-        articles={filteredArticles}
-        onPreviewArticle={setSelectedArticle}
-        onInsertArticle={onInsertArticle}
-      />
-    </div>
-  )
-}
-
-function getArticleCategoryLabel(article: KnowledgeArticle) {
-  if (article.category === "subscription") return "Tickets & workflows"
-  if (article.category === "technical") return "Tickets & workflows"
-  if (article.category === "billing") return "Billing"
-  if (article.category === "account-login") return "Settings"
-  return "Help center"
-}
-
-function getArticleUrl(article: KnowledgeArticle) {
-  return `https://help.graycsm.local/articles/${article.id}`
-}
-
-function KnowledgeArticleList({
-  articles,
-  onPreviewArticle,
-  onInsertArticle,
-}: {
-  articles: KnowledgeArticle[]
-  onPreviewArticle: (article: KnowledgeArticle) => void
-  onInsertArticle: (article: KnowledgeArticle) => void
-}) {
-  if (articles.length === 0) {
-    return (
-      <section>
-        <div className="rounded-xl border border-dashed p-3 text-sm text-muted-foreground">
-          No matching articles.
-        </div>
-      </section>
-    )
-  }
-
-  return (
-    <section>
-      <div className="space-y-1">
-        {articles.map((article) => (
-          <article
-            key={article.id}
-            className="rounded-xl px-2 py-2 transition hover:bg-muted/50"
-          >
-            <div className="flex items-start gap-3">
-              <div className="grid min-w-0 flex-1 grid-cols-[auto_1fr] items-start gap-x-3">
-                <span className="pt-0.5 text-muted-foreground">
-                  <IconFileText className="size-4" />
-                </span>
-                <div className="min-w-0 pr-1">
-                  <button
-                    type="button"
-                    className="min-w-0 text-left focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
-                    onClick={() => onPreviewArticle(article)}
-                  >
-                    <span className="block truncate text-sm font-semibold leading-5 text-foreground">
-                      {article.title}
-                    </span>
-                    <span className="mt-0.5 flex min-w-0 items-center gap-1 text-xs">
-                      <span className="truncate text-muted-foreground">
-                        {getArticleCategoryLabel(article)}
-                      </span>
-                      <span className="text-muted-foreground">·</span>
-                      <span className="shrink-0 text-muted-foreground">
-                        {article.updatedAt.replace("Updated ", "")}
-                      </span>
-                    </span>
-                  </button>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="xs"
-                    className="mt-1 h-6 px-0 text-xs text-muted-foreground hover:bg-transparent hover:text-foreground"
-                    onClick={() => onInsertArticle(article)}
-                  >
-                    <IconPlus className="size-3.5" />
-                    <span className="underline underline-offset-2">Suggest article</span>
-                  </Button>
-                </div>
-              </div>
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon-xs"
-                className="mt-0.5 shrink-0 text-muted-foreground"
-                aria-label={`More actions for ${article.title}`}
-              >
-                <IconDots className="size-4" />
-              </Button>
-            </div>
-          </article>
-        ))}
-      </div>
-    </section>
-  )
-}
-
-function KnowledgeArticlePreview({
-  article,
-  onBack,
-  onInsertArticle,
-}: {
-  article: KnowledgeArticle
-  onBack: () => void
-  onInsertArticle: (article: KnowledgeArticle) => void
-}) {
-  const imageMedia =
-    article.media?.filter((media) => media.type === "image") ?? []
-
-  return (
-    <div className="space-y-4">
-      <Button
-        type="button"
-        variant="ghost"
-        className="h-8 rounded-xl px-0 text-muted-foreground hover:bg-transparent hover:text-foreground"
-        onClick={onBack}
-      >
-        <IconArrowLeft className="size-4" />
-        Back
-      </Button>
-
-      <div className="flex items-start gap-3">
-        <span className="flex size-8 shrink-0 items-center justify-center rounded-xl border bg-muted text-muted-foreground">
-          <IconFileText className="size-4" />
-        </span>
-        <div className="min-w-0 flex-1">
-          <h3 className="text-base font-semibold tracking-tight text-foreground">
-            {article.title}
-          </h3>
-          <div className="mt-1 flex min-w-0 items-center gap-1 text-xs">
-            <span className="truncate text-muted-foreground">
-              {getArticleCategoryLabel(article)}
-            </span>
-            <span className="text-muted-foreground">·</span>
-            <span className="shrink-0 text-muted-foreground">
-              {article.updatedAt.replace("Updated ", "")}
-            </span>
-          </div>
-        </div>
-      </div>
-
-      <Separator />
-
-      <p className="text-sm leading-6 text-foreground/80">
-        {article.summary}
-      </p>
-
-      {imageMedia.length ? (
-        <div className="space-y-3">
-          {imageMedia.map((media) => (
-              <div
-                key={media.title}
-                className="overflow-hidden rounded bg-background"
-              >
-                {media.src ? (
-                  <Image
-                    src={media.src}
-                    alt={media.title}
-                    width={720}
-                    height={405}
-                    className="aspect-video w-full object-cover"
-                  />
-                ) : (
-                  <div className="aspect-video bg-muted" />
-                )}
-              </div>
-          ))}
-        </div>
-      ) : null}
-
-      <div className="space-y-3">
-        {article.quickPath ? (
-          <div className="rounded-xl border bg-muted/30 p-3 text-sm leading-6">
-            <div className="text-xs font-semibold tracking-wide text-muted-foreground">
-              Path
-            </div>
-            <div className="mt-1 text-foreground/85">{article.quickPath}</div>
-          </div>
-        ) : null}
-
-        {article.sections.map((section, index) => {
-          const isReply = section.title
-            .toLowerCase()
-            .includes("suggested customer reply")
-
-          return (
-            <section key={section.title} className="flex gap-3 text-sm leading-6">
-              <span className="mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-full bg-primary/15 text-xs font-semibold text-primary">
-                {index + 1}
-              </span>
-              <div className="min-w-0 flex-1">
-                <h4 className="font-semibold text-foreground">
-                  {section.title}
-                </h4>
-                <p
-                  className={cn(
-                    "mt-1 text-foreground/75",
-                    isReply &&
-                      "rounded-xl border bg-muted/30 px-3 py-2 text-foreground/80"
-                  )}
-                >
-                  {section.body}
-                </p>
-              </div>
-            </section>
-          )
-        })}
-      </div>
-
-      <div className="grid grid-cols-2 gap-2 pt-1">
-        <Button
-          type="button"
-          variant="outline"
-          className="h-10 rounded-xl"
-          onClick={() => onInsertArticle(article)}
-        >
-          <IconPlus className="size-4" />
-          <span className="underline underline-offset-2">Suggest article</span>
-        </Button>
-        <Button type="button" variant="outline" className="h-10 rounded-xl">
-          <IconCopy className="size-4" />
-          Copy link
-        </Button>
-      </div>
-    </div>
   )
 }

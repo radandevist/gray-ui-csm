@@ -24,6 +24,7 @@ import {
   TicketDetailRightPanel,
 } from "@/components/tickets/ticket-detail-sections"
 import { TicketPriorityIndicator } from "@/components/tickets/ticket-priority-indicator"
+import { useTicketReplyFlow } from "@/components/tickets/use-ticket-reply-flow"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import {
@@ -36,7 +37,6 @@ import {
 import { Separator } from "@/components/ui/separator"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { currentUser, replyFromAccounts } from "@/lib/current-user"
-import type { KnowledgeArticle } from "@/lib/knowledge-base/types"
 import type {
   Ticket,
   TicketPerson,
@@ -89,9 +89,6 @@ export function TicketDetailPage({
   const [timeline, setTimeline] = useState(detail.timeline)
   const [tasks, setTasks] = useState<TicketTask[]>(detail.tasks)
   const [notes, setNotes] = useState(detail.notes)
-  const [draftMessage, setDraftMessage] = useState("")
-  const [draftLinkedArticle, setDraftLinkedArticle] =
-    useState<KnowledgeArticle | null>(null)
   const [noteDraft, setNoteDraft] = useState("")
   const [isDesktopRightPanelOpen, setIsDesktopRightPanelOpen] = useState(true)
   const [activeRightPanelSection, setActiveRightPanelSection] =
@@ -192,47 +189,6 @@ export function TicketDetailPage({
     setTimeline((currentTimeline) => [...currentTimeline, event])
   }
 
-  const handleSubmitReply = (nextStatus?: TicketQueueStatus) => {
-    const trimmedDraft = draftMessage.trim()
-
-    if (trimmedDraft) {
-      appendTimelineEvent({
-        id: `${ticket.id}-reply-${Date.now()}`,
-        kind: "message",
-        timestamp: "Now",
-        direction: "outbound",
-        author: agent,
-        channel: ticket.channel,
-        body: trimmedDraft,
-        linkedArticle: draftLinkedArticle
-          ? {
-              title: draftLinkedArticle.title,
-              url: getKnowledgeArticleUrl(draftLinkedArticle),
-              category: getKnowledgeArticleCategoryLabel(draftLinkedArticle),
-              summary: draftLinkedArticle.summary,
-            }
-          : undefined,
-      })
-      setDraftMessage("")
-      setDraftLinkedArticle(null)
-    }
-
-    if (nextStatus) {
-      setQueueStatus(nextStatus)
-      appendTimelineEvent({
-        id: `${ticket.id}-status-${Date.now()}`,
-        kind: "event",
-        timestamp: "Now",
-        title: `Ticket status changed to ${statusLabel[nextStatus]}`,
-        detail: `The ticket is now marked as ${statusLabel[nextStatus].toLowerCase()}.`,
-        tone:
-          nextStatus === "closed" || nextStatus === "resolved"
-            ? "success"
-            : "neutral",
-      })
-    }
-  }
-
   const handleAddInternalNote = () => {
     const trimmedNote = noteDraft.trim()
     if (!trimmedNote) return
@@ -253,19 +209,6 @@ export function TicketDetailPage({
       body: trimmedNote,
     })
     setNoteDraft("")
-  }
-
-  const handleMacroInsert = (macro: string) => {
-    setDraftMessage((currentDraft) =>
-      [currentDraft.trim(), macro].filter(Boolean).join("\n\n")
-    )
-  }
-
-  const handleInsertKnowledgeArticle = (article: KnowledgeArticle) => {
-    setDraftMessage((currentDraft) =>
-      [currentDraft.trim(), article.customerReply].filter(Boolean).join("\n\n")
-    )
-    setDraftLinkedArticle(article)
   }
 
   const handleCreateKnowledgeArticle = () => {
@@ -346,6 +289,23 @@ export function TicketDetailPage({
 
   const ticketNumberLabel = getTicketNumberLabel(ticket)
   const assignee = getAssigneePerson(ticket)
+  const {
+    draftLinkedArticle,
+    draftMessage,
+    insertKnowledgeArticle,
+    insertMacro,
+    isSendingReply,
+    pendingReply,
+    setDraftMessage,
+    submitReply,
+  } = useTicketReplyFlow({
+    activeTab,
+    agent,
+    onAppendTimelineItem: appendTimelineEvent,
+    onQueueStatusChange: setQueueStatus,
+    onSwitchToConversationTab: () => updateTab("conversation"),
+    ticket,
+  })
 
   return (
     <div className="flex h-full min-h-0 flex-col gap-4">
@@ -396,7 +356,7 @@ export function TicketDetailPage({
             <Button
               type="button"
               className="flex-1 rounded-r-none sm:flex-none"
-              onClick={() => handleSubmitReply("closed")}
+              onClick={() => submitReply("closed")}
             >
               <span className="sm:hidden">Close</span>
               <span className="hidden sm:inline">Submit as Closed</span>
@@ -418,17 +378,17 @@ export function TicketDetailPage({
               <DropdownMenuContent align="end" className="min-w-52">
                 <DropdownMenuGroup>
                   <DropdownMenuItem
-                    onClick={() => handleSubmitReply("pending")}
+                    onClick={() => submitReply("pending")}
                   >
                     Submit as Pending
                   </DropdownMenuItem>
                   <DropdownMenuItem
-                    onClick={() => handleSubmitReply("resolved")}
+                    onClick={() => submitReply("resolved")}
                   >
                     Submit as Resolved
                   </DropdownMenuItem>
                   <DropdownMenuItem
-                    onClick={() => handleSubmitReply(undefined)}
+                    onClick={() => submitReply(undefined)}
                   >
                     Send reply only
                   </DropdownMenuItem>
@@ -539,6 +499,8 @@ export function TicketDetailPage({
             >
               <ConversationTabContent
                 conversationItems={conversationItems}
+                pendingReply={pendingReply}
+                isSendingReply={isSendingReply}
                 ticket={ticket}
                 currentUser={{
                   name: currentUser.name,
@@ -555,8 +517,8 @@ export function TicketDetailPage({
                 linkedArticle={draftLinkedArticle}
                 templateQuery={templateQuery}
                 onTemplateQueryChange={setTemplateQuery}
-                onMacroInsert={handleMacroInsert}
-                onSubmitReply={handleSubmitReply}
+                onMacroInsert={insertMacro}
+                onSubmitReply={submitReply}
               />
             </TabsContent>
 
@@ -616,22 +578,11 @@ export function TicketDetailPage({
           detail={detail}
           assignee={assignee}
           selectedReplyAccountLabel={selectedReplyAccount?.label}
-          onInsertKnowledgeArticle={handleInsertKnowledgeArticle}
+          onInsertKnowledgeArticle={insertKnowledgeArticle}
           onCreateKnowledgeArticle={handleCreateKnowledgeArticle}
+          isSendingReply={isSendingReply}
         />
       </div>
     </div>
   )
-}
-
-function getKnowledgeArticleUrl(article: KnowledgeArticle) {
-  return `https://help.graycsm.local/articles/${article.id}`
-}
-
-function getKnowledgeArticleCategoryLabel(article: KnowledgeArticle) {
-  if (article.category === "subscription") return "Tickets & workflows"
-  if (article.category === "technical") return "Tickets & workflows"
-  if (article.category === "billing") return "Billing"
-  if (article.category === "account-login") return "Settings"
-  return "Help center"
 }

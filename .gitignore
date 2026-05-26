@@ -39,4 +39,5 @@ next-env.d.ts
 .idea/
 .agents/
 .codex/
+.playwright-cli/
 .playwright-mcp/
