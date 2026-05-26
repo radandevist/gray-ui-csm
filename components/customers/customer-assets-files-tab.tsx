@@ -1,14 +1,11 @@
 "use client"
 
 import { useMemo, useRef, useState, type ChangeEvent } from "react"
+import Image from "next/image"
 import { Dialog as DialogPrimitive } from "@base-ui/react/dialog"
 import {
   IconDotsVertical,
   IconFile,
-  IconFileSpreadsheet,
-  IconFileTypeDoc,
-  IconFileTypePdf,
-  IconFileTypePpt,
   IconFileZip,
   IconLink,
   IconPhoto,
@@ -100,17 +97,6 @@ function formatFileSizeLabel(file: CustomerAttachment) {
   return `${file.sizeMB.toFixed(1)} MB`
 }
 
-function getAttachmentTypeIcon(type: CustomerAttachmentType) {
-  if (type === "pdf") return IconFileTypePdf
-  if (type === "doc") return IconFileTypeDoc
-  if (type === "sheet") return IconFileSpreadsheet
-  if (type === "slide") return IconFileTypePpt
-  if (type === "zip") return IconFileZip
-  if (type === "link") return IconLink
-  if (type === "image") return IconPhoto
-  return IconFile
-}
-
 function getAttachmentTypeColorClass(type: CustomerAttachmentType) {
   if (type === "pdf") return "text-red-500"
   if (type === "doc") return "text-blue-500"
@@ -128,6 +114,28 @@ function getAttachmentTypeAssetSrc(type: CustomerAttachmentType) {
   if (type === "sheet") return "/file-icons/xlsx.svg"
   if (type === "slide") return "/file-icons/ppt.svg"
   return null
+}
+
+function AttachmentTypeIcon({ type }: { type: CustomerAttachmentType }) {
+  const fileAssetSrc = getAttachmentTypeAssetSrc(type)
+
+  if (fileAssetSrc) {
+    return (
+      <Image
+        src={fileAssetSrc}
+        alt={`${type} icon`}
+        width={24}
+        height={24}
+        className="block size-full object-contain"
+      />
+    )
+  }
+
+  if (type === "zip") return <IconFileZip className="size-6" />
+  if (type === "link") return <IconLink className="size-6" />
+  if (type === "image") return <IconPhoto className="size-6" />
+
+  return <IconFile className="size-6" />
 }
 
 function AddCustomerFileModal({
@@ -521,9 +529,7 @@ export function CustomerAssetsFilesTab({
             {recentFiles.length > 0 ? (
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
                 {recentFiles.map((file) => {
-                  const FileIcon = getAttachmentTypeIcon(file.type)
                   const fileIconColorClass = getAttachmentTypeColorClass(file.type)
-                  const fileAssetSrc = getAttachmentTypeAssetSrc(file.type)
                   return (
                     <article
                       key={file.id}
@@ -531,16 +537,7 @@ export function CustomerAssetsFilesTab({
                     >
                       <div className="flex min-w-0 items-start gap-3">
                         <span className={cn("flex size-6 shrink-0 items-center justify-center self-center", fileIconColorClass)}>
-                          {fileAssetSrc ? (
-                            <img
-                              src={fileAssetSrc}
-                              alt={`${file.type} icon`}
-                              className="block size-full object-contain"
-                              loading="lazy"
-                            />
-                          ) : (
-                            <FileIcon className="size-6" />
-                          )}
+                          <AttachmentTypeIcon type={file.type} />
                         </span>
                         <div className="min-w-0">
                           <p className="truncate text-sm font-medium text-foreground">{file.name}</p>
@@ -628,9 +625,7 @@ export function CustomerAssetsFilesTab({
                 <TableBody>
                   {filteredFiles.length > 0 ? (
                     filteredFiles.map((file) => {
-                      const FileIcon = getAttachmentTypeIcon(file.type)
                       const fileIconColorClass = getAttachmentTypeColorClass(file.type)
-                      const fileAssetSrc = getAttachmentTypeAssetSrc(file.type)
                       return (
                         <TableRow key={file.id}>
                           <TableCell className="px-3 py-3.5">
@@ -648,16 +643,7 @@ export function CustomerAssetsFilesTab({
                                   fileIconColorClass
                                 )}
                               >
-                                {fileAssetSrc ? (
-                                  <img
-                                    src={fileAssetSrc}
-                                    alt={`${file.type} icon`}
-                                    className="block size-full object-contain"
-                                    loading="lazy"
-                                  />
-                                ) : (
-                                  <FileIcon className="size-6" />
-                                )}
+                                <AttachmentTypeIcon type={file.type} />
                               </span>
                               <div className="min-w-0">
                                 <p className="truncate text-sm font-medium text-foreground">{file.name}</p>
