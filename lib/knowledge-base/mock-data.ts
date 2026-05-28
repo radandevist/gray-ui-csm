@@ -1,4 +1,8 @@
-import type { KnowledgeArticle } from "@/lib/knowledge-base/types"
+import type {
+  KnowledgeArticle,
+  KnowledgeArticleExplorerGroup,
+  KnowledgeArticleResolvedGroup,
+} from "@/lib/knowledge-base/types"
 import type { Ticket } from "@/lib/tickets/types"
 
 const sharedPreviewImage = {
@@ -261,7 +265,7 @@ export const knowledgeArticles: KnowledgeArticle[] = [
     summary:
       "Where to find invoice PDFs, tax IDs, and localized billing details from the admin billing workspace.",
     category: "billing",
-    status: "published",
+    status: "needs-review",
     updatedAt: "Updated 5 days ago",
     author: { name: "Arlene McCoy" },
     matchScore: "medium",
@@ -319,7 +323,7 @@ export const knowledgeArticles: KnowledgeArticle[] = [
     summary:
       "Diagnose invalid webhook signatures caused by raw body parsing, secret mismatches, or replayed delivery payloads.",
     category: "technical",
-    status: "draft",
+    status: "needs-review",
     updatedAt: "Updated 11 days ago",
     author: { name: "Amina Rahman" },
     matchScore: "medium",
@@ -348,7 +352,7 @@ export const knowledgeArticles: KnowledgeArticle[] = [
     summary:
       "How billing owners can change billing cadence, review effective dates, and understand credit treatment.",
     category: "subscription",
-    status: "published",
+    status: "draft",
     updatedAt: "Updated 12 days ago",
     author: { name: "Santi Cazorla" },
     matchScore: "low",
@@ -400,6 +404,151 @@ export const knowledgeArticles: KnowledgeArticle[] = [
     customerReply:
       "To transfer ownership, promote the recipient to admin first, then complete the transfer in Members > Roles and verify billing contact details.",
   },
+  {
+    id: "kb-login-magic-link-expired",
+    title: "Magic sign-in link expired",
+    summary:
+      "Help customers request a fresh sign-in link and diagnose common causes of expired or reused authentication emails.",
+    category: "account-login",
+    status: "published",
+    updatedAt: "Updated 7 days ago",
+    author: { name: "Amina Rahman" },
+    matchScore: "medium",
+    views: 118,
+    helpfulRate: 77,
+    linkedTickets: 6,
+    matchReasons: ["magic link", "expired", "email login", "sign in"],
+    quickPath: "Sign in > Email link > Resend link",
+    media: [sharedPreviewImage],
+    sections: [
+      {
+        title: "Most common causes",
+        body: "Magic links expire after a short window and become invalid after the first successful use. Security scanners that pre-open email links can also consume them.",
+      },
+      {
+        title: "What to tell the customer",
+        body: "Ask the customer to request a fresh email, open the newest message only, and complete sign-in from the same browser session where possible.",
+      },
+    ],
+    customerReply:
+      "That sign-in link has probably expired or was already used. Please request a new email link and open only the latest message.",
+  },
+  {
+    id: "kb-browser-cache-login-fix",
+    title: "Clear browser cache for login issues",
+    summary:
+      "Troubleshoot session loops, blank auth callbacks, and stale browser storage that blocks successful sign-in.",
+    category: "account-login",
+    status: "draft",
+    updatedAt: "Updated 9 days ago",
+    author: { name: "Liam Chen" },
+    matchScore: "low",
+    views: 74,
+    helpfulRate: 68,
+    linkedTickets: 4,
+    matchReasons: ["cache", "cookies", "login loop", "browser"],
+    quickPath: "Browser settings > Clear site data",
+    media: [sharedPreviewImage],
+    sections: [
+      {
+        title: "When this helps",
+        body: "Use this when sign-in redirects keep looping, the callback page stays blank, or the customer can log in successfully in a private window only.",
+      },
+      {
+        title: "Recommended steps",
+        body: "Clear cookies and cached files for the workspace domain, then restart the browser tab and retry the sign-in flow once.",
+      },
+    ],
+    customerReply:
+      "This looks like stale browser session data. Please clear cookies for the workspace site and try the sign-in flow again.",
+  },
+  {
+    id: "kb-export-failed-timeout",
+    title: "Export job failed or timed out",
+    summary:
+      "Guide customers through large export retries, timeout expectations, and the right checks before escalating a failed data export.",
+    category: "technical",
+    status: "published",
+    updatedAt: "Updated 6 days ago",
+    author: { name: "Jerome Bell" },
+    matchScore: "medium",
+    views: 133,
+    helpfulRate: 75,
+    linkedTickets: 7,
+    matchReasons: ["export", "timeout", "csv", "download failed"],
+    quickPath: "Reports > Export history",
+    media: [sharedPreviewImage],
+    sections: [
+      {
+        title: "Why exports fail",
+        body: "Exports often fail when the selected date range is too large, the report includes archived records, or the browser closes before the background job completes.",
+      },
+      {
+        title: "Safe retry pattern",
+        body: "Retry with a smaller date range first, then check export history for partial completions before escalating the job ID to support engineering.",
+      },
+    ],
+    customerReply:
+      "Please retry the export with a smaller date range first, then check Export history. If it still fails, share the job ID so we can investigate.",
+  },
+  {
+    id: "kb-domain-verification-stuck",
+    title: "Domain verification still pending",
+    summary:
+      "Resolve stuck DNS verification states for integrations by checking propagation, record conflicts, and expected verification delays.",
+    category: "technical",
+    status: "needs-review",
+    updatedAt: "Updated 4 days ago",
+    author: { name: "Nina Flores" },
+    matchScore: "medium",
+    views: 96,
+    helpfulRate: 73,
+    linkedTickets: 5,
+    matchReasons: ["domain", "dns", "verification", "pending"],
+    quickPath: "Settings > Domains > Verify",
+    media: [sharedPreviewImage],
+    sections: [
+      {
+        title: "Expected wait time",
+        body: "DNS verification can take several minutes to several hours depending on provider TTL and whether the new TXT record conflicts with an older value.",
+      },
+      {
+        title: "What to verify",
+        body: "Confirm the hostname, record type, and exact TXT value. Remove duplicate verification records when the provider UI split the string unexpectedly.",
+      },
+    ],
+    customerReply:
+      "Your domain record may still be propagating. Please confirm the TXT record exactly matches the latest verification value and allow additional DNS propagation time.",
+  },
+  {
+    id: "kb-audit-log-access",
+    title: "View audit log and admin activity",
+    summary:
+      "Explain which roles can access audit history and where admins can review security-sensitive workspace actions.",
+    category: "subscription",
+    status: "published",
+    updatedAt: "Updated 3 days ago",
+    author: { name: "Santi Cazorla" },
+    matchScore: "low",
+    views: 111,
+    helpfulRate: 80,
+    linkedTickets: 6,
+    matchReasons: ["audit log", "admin activity", "security history", "workspace actions"],
+    quickPath: "Admin Center > Security > Audit log",
+    media: [sharedPreviewImage],
+    sections: [
+      {
+        title: "Who can access it",
+        body: "Only workspace owners and admins with security permissions can open the audit log. Regular members cannot view admin-only activity history.",
+      },
+      {
+        title: "What it includes",
+        body: "Audit history includes role changes, security setting updates, authentication events, and selected billing actions tied to an actor and timestamp.",
+      },
+    ],
+    customerReply:
+      "Workspace owners and eligible admins can review this from Admin Center > Security > Audit log.",
+  },
 ]
 
 const categoryFallbackOrder = [
@@ -407,6 +556,72 @@ const categoryFallbackOrder = [
   "kb-cancel-order",
   "kb-product-exchange",
 ]
+
+export const knowledgeArticleExplorerGroups: KnowledgeArticleExplorerGroup[] = [
+  {
+    id: "billing-plans",
+    label: "Billing & Plans",
+    defaultOpen: true,
+    articleIds: [
+      "kb-billing-seat-update",
+      "kb-change-plan-annual-monthly",
+      "kb-download-invoice-pdf",
+      "kb-card-charge-failed",
+    ],
+  },
+  {
+    id: "access-security",
+    label: "Access & Security",
+    defaultOpen: true,
+    articleIds: [
+      "kb-login-reset",
+      "kb-2fa-recovery-codes",
+      "kb-login-magic-link-expired",
+      "kb-browser-cache-login-fix",
+    ],
+  },
+  {
+    id: "troubleshooting",
+    label: "Troubleshooting",
+    articleIds: [
+      "kb-return-refund-policy",
+      "kb-cancel-order",
+      "kb-product-exchange",
+      "kb-export-failed-timeout",
+    ],
+  },
+  {
+    id: "integrations",
+    label: "Integrations",
+    articleIds: [
+      "kb-api-rate-limit",
+      "kb-webhook-signature-failed",
+      "kb-domain-verification-stuck",
+    ],
+  },
+  {
+    id: "account-management",
+    label: "Account Management",
+    articleIds: [
+      "kb-transfer-workspace-ownership",
+      "kb-audit-log-access",
+    ],
+  },
+]
+
+export function getKnowledgeArticleExplorerGroups(): KnowledgeArticleResolvedGroup[] {
+  const articleById = new Map(knowledgeArticles.map((article) => [article.id, article]))
+
+  return knowledgeArticleExplorerGroups.map((group) => ({
+    id: group.id,
+    label: group.label,
+    defaultOpen: group.defaultOpen ?? false,
+    articles: group.articleIds.flatMap((articleId) => {
+      const article = articleById.get(articleId)
+      return article ? [article] : []
+    }),
+  }))
+}
 
 export function getSuggestedKnowledgeArticles(ticket: Ticket) {
   const searchableText = [

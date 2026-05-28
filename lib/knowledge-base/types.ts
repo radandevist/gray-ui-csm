@@ -1,6 +1,6 @@
 import type { TicketCategoryKey } from "@/lib/tickets/types"
 
-export type KnowledgeArticleStatus = "published" | "draft"
+export type KnowledgeArticleStatus = "published" | "draft" | "needs-review"
 
 export type KnowledgeArticle = {
   id: string
@@ -37,4 +37,18 @@ export type KnowledgeArticle = {
     body: string
   }>
   customerReply: string
+}
+
+export type KnowledgeArticleExplorerGroup = {
+  id: string
+  label: string
+  defaultOpen?: boolean
+  articleIds: string[]
+}
+
+export type KnowledgeArticleResolvedGroup = {
+  id: string
+  label: string
+  defaultOpen: boolean
+  articles: KnowledgeArticle[]
 }
