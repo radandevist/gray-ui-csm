@@ -561,6 +561,7 @@ export const knowledgeArticleExplorerGroups: KnowledgeArticleExplorerGroup[] = [
   {
     id: "billing-plans",
     label: "Billing & Plans",
+    icon: "credit-card",
     defaultOpen: true,
     articleIds: [
       "kb-billing-seat-update",
@@ -572,6 +573,7 @@ export const knowledgeArticleExplorerGroups: KnowledgeArticleExplorerGroup[] = [
   {
     id: "access-security",
     label: "Access & Security",
+    icon: "shield",
     defaultOpen: true,
     articleIds: [
       "kb-login-reset",
@@ -583,6 +585,7 @@ export const knowledgeArticleExplorerGroups: KnowledgeArticleExplorerGroup[] = [
   {
     id: "troubleshooting",
     label: "Troubleshooting",
+    icon: "tool",
     articleIds: [
       "kb-return-refund-policy",
       "kb-cancel-order",
@@ -593,6 +596,7 @@ export const knowledgeArticleExplorerGroups: KnowledgeArticleExplorerGroup[] = [
   {
     id: "integrations",
     label: "Integrations",
+    icon: "plug",
     articleIds: [
       "kb-api-rate-limit",
       "kb-webhook-signature-failed",
@@ -602,6 +606,7 @@ export const knowledgeArticleExplorerGroups: KnowledgeArticleExplorerGroup[] = [
   {
     id: "account-management",
     label: "Account Management",
+    icon: "users",
     articleIds: [
       "kb-transfer-workspace-ownership",
       "kb-audit-log-access",
@@ -609,12 +614,16 @@ export const knowledgeArticleExplorerGroups: KnowledgeArticleExplorerGroup[] = [
   },
 ]
 
-export function getKnowledgeArticleExplorerGroups(): KnowledgeArticleResolvedGroup[] {
-  const articleById = new Map(knowledgeArticles.map((article) => [article.id, article]))
+export function getKnowledgeArticleExplorerGroups(
+  articles = knowledgeArticles,
+  groups = knowledgeArticleExplorerGroups
+): KnowledgeArticleResolvedGroup[] {
+  const articleById = new Map(articles.map((article) => [article.id, article]))
 
-  return knowledgeArticleExplorerGroups.map((group) => ({
+  return groups.map((group) => ({
     id: group.id,
     label: group.label,
+    icon: group.icon,
     defaultOpen: group.defaultOpen ?? false,
     articles: group.articleIds.flatMap((articleId) => {
       const article = articleById.get(articleId)
@@ -623,7 +632,18 @@ export function getKnowledgeArticleExplorerGroups(): KnowledgeArticleResolvedGro
   }))
 }
 
-export function getSuggestedKnowledgeArticles(ticket: Ticket) {
+export function getKnowledgeArticleById(
+  articleId: string | null,
+  articles = knowledgeArticles
+) {
+  if (!articleId) return null
+  return articles.find((article) => article.id === articleId) ?? null
+}
+
+export function getSuggestedKnowledgeArticles(
+  ticket: Ticket,
+  articles = knowledgeArticles
+) {
   const searchableText = [
     ticket.subject,
     ticket.category,
@@ -634,7 +654,7 @@ export function getSuggestedKnowledgeArticles(ticket: Ticket) {
     .join(" ")
     .toLowerCase()
 
-  const scoredArticles = knowledgeArticles
+  const scoredArticles = articles
     .map((article) => {
       const categoryScore = article.category === ticket.category ? 4 : 0
       const reasonScore = article.matchReasons.reduce((score, reason) => {

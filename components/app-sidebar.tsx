@@ -18,7 +18,6 @@ import {
 } from "@tabler/icons-react"
 
 import { CustomerSidebarFilters } from "@/components/customers/customer-sidebar-filters"
-import { KnowledgeSidebarPanel } from "@/components/knowledge-base/knowledge-sidebar-panel"
 import { TicketSidebarFilters } from "@/components/tickets/ticket-sidebar-filters"
 import { Label } from "@/components/ui/label"
 import {
@@ -79,7 +78,9 @@ export function AppSidebar({
   const isKnowledgeBaseSection = matchedItem.path === "/knowledge-base"
   const isSidebarCollapsed = state === "collapsed"
   const shouldShowSecondaryPanel =
-    displayMode !== "full-detail" && !isSidebarCollapsed
+    displayMode !== "full-detail" &&
+    !isSidebarCollapsed &&
+    !isKnowledgeBaseSection
 
   return (
     <Sidebar
@@ -170,10 +171,6 @@ export function AppSidebar({
                   <CustomerSidebarFilters />
                 </Suspense>
               </SidebarContent>
-            ) : isKnowledgeBaseSection ? (
-              <Suspense fallback={null}>
-                <KnowledgeSidebarPanel />
-              </Suspense>
             ) : (
               <>
                 <SidebarHeader className="gap-3.5 border-b p-4">

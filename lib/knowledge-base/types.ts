@@ -1,6 +1,31 @@
 import type { TicketCategoryKey } from "@/lib/tickets/types"
+import type { JSONContent } from "@tiptap/react"
 
 export type KnowledgeArticleStatus = "published" | "draft" | "needs-review"
+
+export type KnowledgeArticleContent = {
+  format: "tiptap-json"
+  document: JSONContent
+}
+
+export type KnowledgeArticleSavePatch = {
+  document: JSONContent
+  title: string
+  status: KnowledgeArticleStatus
+  customerReply: string
+}
+
+export type KnowledgeArticleCreateInput = {
+  groupId: string
+  title?: string
+  status?: KnowledgeArticleStatus
+}
+
+export type KnowledgeBaseStorageSnapshot = {
+  version: 1
+  articles: KnowledgeArticle[]
+  groups: KnowledgeArticleExplorerGroup[]
+}
 
 export type KnowledgeArticle = {
   id: string
@@ -36,12 +61,16 @@ export type KnowledgeArticle = {
     title: string
     body: string
   }>
+  content?: KnowledgeArticleContent
   customerReply: string
+  commentsCount?: number
+  activityCount?: number
 }
 
 export type KnowledgeArticleExplorerGroup = {
   id: string
   label: string
+  icon: KnowledgeArticleGroupIcon
   defaultOpen?: boolean
   articleIds: string[]
 }
@@ -49,6 +78,15 @@ export type KnowledgeArticleExplorerGroup = {
 export type KnowledgeArticleResolvedGroup = {
   id: string
   label: string
+  icon: KnowledgeArticleGroupIcon
   defaultOpen: boolean
   articles: KnowledgeArticle[]
 }
+
+export type KnowledgeArticleGroupIcon =
+  | "book"
+  | "credit-card"
+  | "shield"
+  | "tool"
+  | "plug"
+  | "users"

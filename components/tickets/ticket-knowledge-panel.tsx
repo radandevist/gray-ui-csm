@@ -16,6 +16,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Separator } from "@/components/ui/separator"
 import { knowledgeArticles } from "@/lib/knowledge-base/mock-data"
+import { useKnowledgeArticlesFromStorage } from "@/lib/knowledge-base/use-knowledge-articles-storage"
 import type { KnowledgeArticle } from "@/lib/knowledge-base/types"
 import { cn } from "@/lib/utils"
 import {
@@ -62,9 +63,10 @@ export function TicketKnowledgePanel({
     maxHeight: number
   } | null>(null)
   const [articleQuery, setArticleQuery] = React.useState("")
+  const articles = useKnowledgeArticlesFromStorage(knowledgeArticles)
   const normalizedQuery = articleQuery.trim().toLowerCase()
 
-  const filteredArticles = knowledgeArticles.filter((article) => {
+  const filteredArticles = articles.filter((article) => {
     if (!normalizedQuery) return true
 
     return [article.title, article.summary, article.category]

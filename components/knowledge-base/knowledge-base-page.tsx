@@ -1,21 +1,17 @@
 "use client"
 
-import { usePathname, useRouter, useSearchParams } from "next/navigation"
+import * as React from "react"
 
-import { KnowledgeBaseArticlesExplorer } from "@/components/knowledge-base/knowledge-base-articles-explorer"
 import {
-  KnowledgeBaseContentPlaceholder,
-  KnowledgeBasePageHeader,
-} from "@/components/knowledge-base/knowledge-base-page-sections"
-import {
-  knowledgeBasePageCopy,
-  knowledgeBaseTabItems,
-  type KnowledgeBaseTab,
-} from "@/components/knowledge-base/knowledge-base-page.copy"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { getKnowledgeArticleExplorerGroups } from "@/lib/knowledge-base/mock-data"
+  KnowledgeBaseArticleDetail,
+} from "@/components/knowledge-base/knowledge-base-article-detail"
+import { KnowledgeBaseGroupPanel } from "@/components/knowledge-base/knowledge-base-group-panel"
+import { KnowledgeBaseContentPlaceholder } from "@/components/knowledge-base/knowledge-base-page-sections"
+import { knowledgeBasePageCopy } from "@/components/knowledge-base/knowledge-base-page.copy"
+import { useKnowledgeBasePageState } from "@/components/knowledge-base/use-knowledge-base-page-state"
+import { ConfirmDialog } from "@/components/ui/confirm-dialog"
 import type { CsmTemplateMetric } from "@/lib/csm-routes"
-import { tickets } from "@/lib/tickets/mock-data"
+import { cn } from "@/lib/utils"
 
 type KnowledgeBasePageProps = {
   title: string
@@ -23,129 +19,94 @@ type KnowledgeBasePageProps = {
   metrics: CsmTemplateMetric[]
 }
 
-const defaultKnowledgeBaseTab: KnowledgeBaseTab = "articles"
+export function KnowledgeBasePage(props: KnowledgeBasePageProps) {
+  void props
 
-function normalizeKnowledgeBaseTab(value: string | null): KnowledgeBaseTab {
-  if (!value) return defaultKnowledgeBaseTab
-
-  return (
-    knowledgeBaseTabItems.find((item) => item.value === value)?.value ??
-    defaultKnowledgeBaseTab
-  )
-}
-
-function normalizeSelectedArticleId(value: string | null, articleIds: string[]) {
-  if (value && articleIds.includes(value)) return value
-  return articleIds[0] ?? null
-}
-
-export function KnowledgeBasePage({
-  title,
-  description,
-}: KnowledgeBasePageProps) {
-  const pathname = usePathname()
-  const router = useRouter()
-  const searchParams = useSearchParams()
-  const activeTab = normalizeKnowledgeBaseTab(searchParams.get("tab"))
-  const articleGroups = getKnowledgeArticleExplorerGroups()
-  const articleIds = articleGroups.flatMap((group) =>
-    group.articles.map((article) => article.id)
-  )
-  const selectedArticleId = normalizeSelectedArticleId(
-    searchParams.get("article"),
-    articleIds
-  )
-  const sourceTicketId = searchParams.get("sourceTicket")
-  const sourceTicket =
-    tickets.find((ticket) => ticket.id === sourceTicketId) ?? null
-
-  const sourceTicketLabel = sourceTicket
-    ? `${knowledgeBasePageCopy.sourceTicketLabel} ${sourceTicket.ticketNumber}`
-    : null
-
-  const replaceQuery = (
-    nextTab: KnowledgeBaseTab,
-    nextArticleId?: string | null
-  ) => {
-    const nextSearchParams = new URLSearchParams(searchParams.toString())
-    if (nextTab === defaultKnowledgeBaseTab) {
-      nextSearchParams.delete("tab")
-    } else {
-      nextSearchParams.set("tab", nextTab)
-    }
-
-    const articleId = nextArticleId ?? selectedArticleId
-    if (articleId) {
-      nextSearchParams.set("article", articleId)
-    } else {
-      nextSearchParams.delete("article")
-    }
-
-    const nextQuery = nextSearchParams.toString()
-    router.replace(nextQuery ? `${pathname}?${nextQuery}` : pathname)
-  }
+  const {
+    articleGroups,
+    selectedArticleId,
+    selectedArticle,
+    activeArticleTab,
+    activeGroupId,
+    isGroupPanelOpen,
+    setIsGroupPanelOpen,
+    searchValue,
+    setSearchValue,
+    setHasUnsavedArticleChanges,
+    pendingNavigationAction,
+    editOnMountArticleId,
+    clearEditOnMountArticleId,
+    replaceQuery,
+    handleSelectGroup,
+    handleSelectArticle,
+    handleCreateArticle,
+    handleCreateGroup,
+    handleSaveArticle,
+    handleConfirmPendingNavigation,
+    handleDismissPendingNavigation,
+  } = useKnowledgeBasePageState()
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col gap-6">
-      <KnowledgeBasePageHeader
-        title={title}
-        description={description}
-        sourceTicketLabel={sourceTicketLabel}
-        backToTicketLabel={knowledgeBasePageCopy.backToTicket}
-        createArticleLabel={knowledgeBasePageCopy.createArticle}
-        onBackToTicket={
-          sourceTicket ? () => router.push(`/tickets/${sourceTicket.id}`) : undefined
-        }
-      />
+    <div className="flex min-h-0 flex-1 flex-col gap-4">
+      <section className="flex min-h-0 flex-1 flex-col">
+        <div
+          className={cn(
+            "grid min-h-0 flex-1 overflow-hidden border",
+            isGroupPanelOpen
+              ? "lg:grid-cols-[minmax(18rem,22rem)_minmax(0,1fr)]"
+              : "lg:grid-cols-[3.5rem_minmax(0,1fr)]"
+          )}
+        >
+          <KnowledgeBaseGroupPanel
+            groups={articleGroups}
+            activeGroupId={activeGroupId}
+            selectedArticleId={selectedArticleId}
+            searchValue={searchValue}
+            onSearchChange={setSearchValue}
+            isPanelOpen={isGroupPanelOpen}
+            onTogglePanel={() => setIsGroupPanelOpen((isOpen) => !isOpen)}
+            onSelectGroup={handleSelectGroup}
+            onSelectArticle={handleSelectArticle}
+            onCreateGroup={handleCreateGroup}
+            onCreateArticle={handleCreateArticle}
+          />
 
-      <Tabs
-        value={activeTab}
-        onValueChange={(nextValue) =>
-          replaceQuery(normalizeKnowledgeBaseTab(nextValue))
-        }
-        className="min-h-0 flex-1 gap-0"
-      >
-        <div className="shrink-0 border-b">
-          <TabsList
-            variant="line"
-            className="w-full justify-start gap-2 rounded-none p-0"
-          >
-            {knowledgeBaseTabItems.map((item) => (
-              <TabsTrigger key={item.value} value={item.value}>
-                {item.label}
-              </TabsTrigger>
-            ))}
-          </TabsList>
-        </div>
-
-        {knowledgeBaseTabItems.map((item) => (
-          <TabsContent
-            key={item.value}
-            value={item.value}
-            className="mt-0 min-h-0 flex-1 data-[state=inactive]:hidden"
-          >
-            <div className="scrollbar-hidden h-full overflow-y-auto">
-              {item.value === "articles" ? (
-                <KnowledgeBaseArticlesExplorer
-                  groups={articleGroups}
-                  selectedArticleId={selectedArticleId}
-                  onSelectArticle={(articleId) =>
-                    replaceQuery(activeTab, articleId)
-                  }
+          <section className="flex min-h-0 flex-col overflow-hidden">
+            {selectedArticle ? (
+              <KnowledgeBaseArticleDetail
+                article={selectedArticle}
+                activeTab={activeArticleTab}
+                startInEditMode={editOnMountArticleId === selectedArticle.id}
+                onEditModeStarted={clearEditOnMountArticleId}
+                onTabChange={(nextTab) => replaceQuery({ articleTab: nextTab })}
+                onSaveArticle={handleSaveArticle}
+                onUnsavedChangesChange={setHasUnsavedArticleChanges}
+              />
+            ) : (
+              <div className="px-6 py-8">
+                <KnowledgeBaseContentPlaceholder
+                  eyebrow={knowledgeBasePageCopy.placeholderEyebrow}
+                  title={knowledgeBasePageCopy.articlesEmptyTitle}
+                  description={knowledgeBasePageCopy.articlesEmptyDescription}
                 />
-              ) : (
-                <div className="py-6">
-                  <KnowledgeBaseContentPlaceholder
-                    eyebrow={knowledgeBasePageCopy.placeholderEyebrow}
-                    title={item.emptyTitle}
-                    description={item.emptyDescription}
-                  />
-                </div>
-              )}
-            </div>
-          </TabsContent>
-        ))}
-      </Tabs>
+              </div>
+            )}
+          </section>
+        </div>
+      </section>
+
+      <ConfirmDialog
+        open={pendingNavigationAction !== null}
+        onOpenChange={(open) => {
+          if (!open) handleDismissPendingNavigation()
+        }}
+        title={knowledgeBasePageCopy.articleDiscardTitle}
+        description={knowledgeBasePageCopy.articleDiscardDescription}
+        confirmLabel={knowledgeBasePageCopy.articleDiscardConfirmLabel}
+        cancelLabel={knowledgeBasePageCopy.articleCancelLabel}
+        confirmVariant="destructive"
+        onConfirm={handleConfirmPendingNavigation}
+      />
     </div>
   )
 }

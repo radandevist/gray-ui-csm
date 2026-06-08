@@ -50,24 +50,27 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const activeRoute = getRouteByPathname(pathname)
   const shellDisplayMode = getShellDisplayMode(pathname)
   const isTicketsListPage = pathname === "/tickets"
+  const isKnowledgeBasePage = pathname === "/knowledge-base"
+  const shouldForceSidebarCollapsed =
+    shellDisplayMode === "full-detail" || isKnowledgeBasePage
   const [sidebarOpen, setSidebarOpen] = React.useState(true)
 
   React.useEffect(() => {
-    if (shellDisplayMode === "full-detail") {
+    if (shouldForceSidebarCollapsed) {
       setSidebarOpen(false)
     }
-  }, [shellDisplayMode])
+  }, [shouldForceSidebarCollapsed])
 
   const handleSidebarOpenChange = React.useCallback(
     (nextOpen: boolean) => {
-      setSidebarOpen(shellDisplayMode === "full-detail" ? false : nextOpen)
+      setSidebarOpen(shouldForceSidebarCollapsed ? false : nextOpen)
     },
-    [shellDisplayMode]
+    [shouldForceSidebarCollapsed]
   )
 
   return (
     <SidebarProvider
-      open={shellDisplayMode === "full-detail" ? false : sidebarOpen}
+      open={shouldForceSidebarCollapsed ? false : sidebarOpen}
       onOpenChange={handleSidebarOpenChange}
       style={
         {
@@ -171,7 +174,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             "mx-auto flex w-full min-w-0 flex-1 flex-col overflow-x-hidden",
             shellDisplayMode === "full-detail"
               ? "h-svh min-h-0 max-w-none gap-3 overflow-hidden px-3 py-3 sm:gap-4 sm:px-4 sm:py-4 lg:px-8"
-              : isTicketsListPage
+              : isTicketsListPage || isKnowledgeBasePage
                 ? "min-h-0 max-w-500 gap-4 overflow-hidden p-4 sm:p-6 lg:p-8"
                 : "min-h-0 max-w-500 gap-4 overflow-y-auto p-4 sm:p-6 lg:p-8"
           )}
