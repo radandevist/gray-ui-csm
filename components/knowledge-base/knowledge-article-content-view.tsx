@@ -170,9 +170,9 @@ export function KnowledgeArticleContentView({
           return (
             <div
               key={key}
-              className="rounded-xl bg-card px-5 py-4"
+              className="rounded-xl bg-muted px-5 py-4"
             >
-              <div className="border-l-2 border-border pl-5 text-base leading-8 text-muted-foreground">
+              <div className="border-l-3 border-foreground/50 pl-5 text-base leading-8 text-muted-foreground">
                 <div className="min-w-0 font-medium tracking-tight text-foreground/80">
                   {block.content?.map((child, childIndex) =>
                     renderInlineContent(child, `${key}-${childIndex}`)
@@ -216,14 +216,14 @@ export function KnowledgeArticleContentView({
               className={cn(
                 "text-base leading-8 text-foreground/78",
                 isReply &&
-                  "rounded-2xl border bg-muted/40 px-5 py-4 text-base leading-8 text-foreground/85"
+                "rounded-2xl border bg-muted/40 px-5 py-4 text-base leading-8 text-foreground/85"
               )}
             >
               {blockContent}
             </p>
             {showMedia &&
-            article.media?.length &&
-            index === mediaInsertIndex ? (
+              article.media?.length &&
+              index === mediaInsertIndex ? (
               <ArticleMedia article={article} />
             ) : null}
           </React.Fragment>

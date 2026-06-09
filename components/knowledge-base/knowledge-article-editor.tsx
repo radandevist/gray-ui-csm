@@ -50,12 +50,12 @@ const articleHeadingLevelOptions: Array<{
   level: ArticleHeadingLevel
   label: string
 }> = [
-  { level: 2, label: knowledgeBasePageCopy.articleToolbarHeadingTwoLabel },
-  { level: 3, label: knowledgeBasePageCopy.articleToolbarHeadingThreeLabel },
-  { level: 4, label: knowledgeBasePageCopy.articleToolbarHeadingFourLabel },
-  { level: 5, label: knowledgeBasePageCopy.articleToolbarHeadingFiveLabel },
-  { level: 6, label: knowledgeBasePageCopy.articleToolbarHeadingSixLabel },
-]
+    { level: 2, label: knowledgeBasePageCopy.articleToolbarHeadingTwoLabel },
+    { level: 3, label: knowledgeBasePageCopy.articleToolbarHeadingThreeLabel },
+    { level: 4, label: knowledgeBasePageCopy.articleToolbarHeadingFourLabel },
+    { level: 5, label: knowledgeBasePageCopy.articleToolbarHeadingFiveLabel },
+    { level: 6, label: knowledgeBasePageCopy.articleToolbarHeadingSixLabel },
+  ]
 
 const editorExtensions = [
   StarterKit.configure({
@@ -222,7 +222,7 @@ const editorMenuSurfaceClassName =
   "flex flex-wrap items-center gap-0.5 rounded-xl border border-border/70 bg-background p-1 shadow-sm"
 
 const articleEditorProseClassName =
-  "min-h-[360px] text-base leading-8 text-foreground/85 [&_.ProseMirror_blockquote]:my-4 [&_.ProseMirror_blockquote]:rounded-xl [&_.ProseMirror_blockquote]:bg-card [&_.ProseMirror_blockquote]:px-5 [&_.ProseMirror_blockquote]:py-4 [&_.ProseMirror_blockquote]:not-italic [&_.ProseMirror_blockquote]:text-base [&_.ProseMirror_blockquote]:leading-8 [&_.ProseMirror_blockquote]:text-muted-foreground [&_.ProseMirror_blockquote_p]:my-0 [&_.ProseMirror_blockquote_p]:border-l-2 [&_.ProseMirror_blockquote_p]:border-border [&_.ProseMirror_blockquote_p]:pl-5 [&_.ProseMirror_blockquote_p]:font-medium [&_.ProseMirror_blockquote_p]:tracking-tight [&_.ProseMirror_blockquote_p]:text-foreground/80 [&_.ProseMirror_code]:rounded [&_.ProseMirror_code]:bg-muted [&_.ProseMirror_code]:px-1 [&_.ProseMirror_code]:py-0.5 [&_.ProseMirror_code]:font-mono [&_.ProseMirror_code]:text-sm [&_.ProseMirror_h2]:mt-6 [&_.ProseMirror_h2]:mb-3 [&_.ProseMirror_h2]:text-2xl [&_.ProseMirror_h2]:leading-tight [&_.ProseMirror_h2]:font-semibold [&_.ProseMirror_h2]:tracking-tight [&_.ProseMirror_h3]:mt-5 [&_.ProseMirror_h3]:mb-2 [&_.ProseMirror_h3]:text-xl [&_.ProseMirror_h3]:leading-tight [&_.ProseMirror_h3]:font-semibold [&_.ProseMirror_h3]:tracking-tight [&_.ProseMirror_h4]:mt-4 [&_.ProseMirror_h4]:mb-2 [&_.ProseMirror_h4]:text-lg [&_.ProseMirror_h4]:leading-tight [&_.ProseMirror_h4]:font-semibold [&_.ProseMirror_h4]:tracking-tight [&_.ProseMirror_h5]:mt-4 [&_.ProseMirror_h5]:mb-2 [&_.ProseMirror_h5]:text-base [&_.ProseMirror_h5]:leading-tight [&_.ProseMirror_h5]:font-semibold [&_.ProseMirror_h5]:tracking-tight [&_.ProseMirror_h6]:mt-3 [&_.ProseMirror_h6]:mb-2 [&_.ProseMirror_h6]:text-sm [&_.ProseMirror_h6]:leading-tight [&_.ProseMirror_h6]:font-semibold [&_.ProseMirror_h6]:tracking-tight [&_.ProseMirror_hr]:my-6 [&_.ProseMirror_hr]:border-border [&_.ProseMirror_ol]:my-3 [&_.ProseMirror_ol]:list-decimal [&_.ProseMirror_ol]:pl-6 [&_.ProseMirror_p]:my-3 [&_.ProseMirror_ul]:my-3 [&_.ProseMirror_ul]:list-disc [&_.ProseMirror_ul]:pl-6"
+  "min-h-[360px] text-base leading-8 text-foreground/85 [&_.ProseMirror_blockquote]:my-4 [&_.ProseMirror_blockquote]:rounded-xl [&_.ProseMirror_blockquote]:bg-muted [&_.ProseMirror_blockquote]:px-5 [&_.ProseMirror_blockquote]:py-4 [&_.ProseMirror_blockquote]:not-italic [&_.ProseMirror_blockquote]:text-base [&_.ProseMirror_blockquote]:leading-8 [&_.ProseMirror_blockquote]:text-muted-foreground [&_.ProseMirror_blockquote_p]:my-0 [&_.ProseMirror_blockquote_p]:border-l-2 [&_.ProseMirror_blockquote_p]:border-foreground/50 [&_.ProseMirror_blockquote_p]:pl-5 [&_.ProseMirror_blockquote_p]:font-medium [&_.ProseMirror_blockquote_p]:tracking-tight [&_.ProseMirror_blockquote_p]:text-foreground/80 [&_.ProseMirror_code]:rounded [&_.ProseMirror_code]:bg-muted [&_.ProseMirror_code]:px-1 [&_.ProseMirror_code]:py-0.5 [&_.ProseMirror_code]:font-mono [&_.ProseMirror_code]:text-sm [&_.ProseMirror_h2]:mt-6 [&_.ProseMirror_h2]:mb-3 [&_.ProseMirror_h2]:text-2xl [&_.ProseMirror_h2]:leading-tight [&_.ProseMirror_h2]:font-semibold [&_.ProseMirror_h2]:tracking-tight [&_.ProseMirror_h3]:mt-5 [&_.ProseMirror_h3]:mb-2 [&_.ProseMirror_h3]:text-xl [&_.ProseMirror_h3]:leading-tight [&_.ProseMirror_h3]:font-semibold [&_.ProseMirror_h3]:tracking-tight [&_.ProseMirror_h4]:mt-4 [&_.ProseMirror_h4]:mb-2 [&_.ProseMirror_h4]:text-lg [&_.ProseMirror_h4]:leading-tight [&_.ProseMirror_h4]:font-semibold [&_.ProseMirror_h4]:tracking-tight [&_.ProseMirror_h5]:mt-4 [&_.ProseMirror_h5]:mb-2 [&_.ProseMirror_h5]:text-base [&_.ProseMirror_h5]:leading-tight [&_.ProseMirror_h5]:font-semibold [&_.ProseMirror_h5]:tracking-tight [&_.ProseMirror_h6]:mt-3 [&_.ProseMirror_h6]:mb-2 [&_.ProseMirror_h6]:text-sm [&_.ProseMirror_h6]:leading-tight [&_.ProseMirror_h6]:font-semibold [&_.ProseMirror_h6]:tracking-tight [&_.ProseMirror_hr]:my-6 [&_.ProseMirror_hr]:border-foreground/50 [&_.ProseMirror_ol]:my-3 [&_.ProseMirror_ol]:list-decimal [&_.ProseMirror_ol]:pl-6 [&_.ProseMirror_p]:my-3 [&_.ProseMirror_ul]:my-3 [&_.ProseMirror_ul]:list-disc [&_.ProseMirror_ul]:pl-6"
 
 function KnowledgeArticleInlineToolbar({
   editor,
