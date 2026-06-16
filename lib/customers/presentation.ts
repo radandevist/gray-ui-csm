@@ -114,3 +114,30 @@ export function getCustomerInitials(value: string) {
     .slice(0, 2)
     .toUpperCase()
 }
+
+const customerInitialAvatarToneClassNames = [
+  "bg-teal-500 text-white",
+  "bg-violet-500 text-white",
+  "bg-pink-500 text-white",
+  "bg-rose-500 text-white",
+  "bg-orange-500 text-white",
+  "bg-sky-500 text-white",
+  "bg-cyan-500 text-white",
+  "bg-fuchsia-500 text-white",
+] as const
+
+export function getCustomerInitialAvatarToneClassName(name: string) {
+  const normalizedName = name.trim()
+
+  if (!normalizedName) {
+    return customerInitialAvatarToneClassNames[0]
+  }
+
+  const hash = Array.from(normalizedName).reduce((total, character) => {
+    return total + character.charCodeAt(0)
+  }, 0)
+
+  return customerInitialAvatarToneClassNames[
+    hash % customerInitialAvatarToneClassNames.length
+  ]
+}

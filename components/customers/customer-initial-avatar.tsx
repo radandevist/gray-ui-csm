@@ -1,5 +1,8 @@
 import { Avatar, AvatarBadge, AvatarFallback } from "@/components/ui/avatar"
-import { getCustomerInitials } from "@/lib/customers/presentation"
+import {
+  getCustomerInitialAvatarToneClassName,
+  getCustomerInitials,
+} from "@/lib/customers/presentation"
 import { cn } from "@/lib/utils"
 
 type CustomerInitialAvatarSize = "sm" | "md" | "lg"
@@ -29,6 +32,8 @@ export function CustomerInitialAvatar({
   className,
   badgeClassName,
 }: CustomerInitialAvatarProps) {
+  const toneClassName = getCustomerInitialAvatarToneClassName(name)
+
   return (
     <Avatar
       className={cn(
@@ -40,7 +45,8 @@ export function CustomerInitialAvatar({
       <AvatarFallback
         aria-label={name}
         className={cn(
-          "border border-primary bg-primary/30 text-primary-foreground",
+          "font-semibold",
+          toneClassName,
           fallbackTextClassName[size],
           "flex items-center justify-center"
         )}
