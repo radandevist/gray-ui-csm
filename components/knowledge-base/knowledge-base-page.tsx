@@ -39,6 +39,8 @@ export function KnowledgeBasePage(props: KnowledgeBasePageProps) {
     handleSelectArticle,
     handleCreateArticle,
     handleCreateGroup,
+    handleToggleArticlePin,
+    handleArchiveArticle,
     handleSaveArticle,
     handleSaveArticleComments,
     handleConfirmPendingNavigation,
@@ -53,7 +55,7 @@ export function KnowledgeBasePage(props: KnowledgeBasePageProps) {
             "grid min-h-0 flex-1 overflow-hidden border-t border-border",
             isGroupPanelOpen
               ? "lg:grid-cols-[minmax(18rem,22rem)_minmax(0,1fr)]"
-              : "lg:grid-cols-[3.5rem_minmax(0,1fr)]"
+              : "lg:grid-cols-[3.25rem_minmax(0,1fr)]"
           )}
         >
           <KnowledgeBaseGroupPanel
@@ -68,6 +70,8 @@ export function KnowledgeBasePage(props: KnowledgeBasePageProps) {
             onSelectArticle={handleSelectArticle}
             onCreateGroup={handleCreateGroup}
             onCreateArticle={handleCreateArticle}
+            onToggleArticlePin={handleToggleArticlePin}
+            onArchiveArticle={handleArchiveArticle}
           />
 
           <section className="flex min-h-0 flex-col overflow-hidden">

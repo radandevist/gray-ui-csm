@@ -1382,10 +1382,15 @@ export function getKnowledgeArticleExplorerGroups(
     label: group.label,
     icon: group.icon,
     defaultOpen: group.defaultOpen ?? false,
-    articles: group.articleIds.flatMap((articleId) => {
-      const article = articleById.get(articleId)
-      return article ? [article] : []
-    }),
+    articles: group.articleIds
+      .flatMap((articleId) => {
+        const article = articleById.get(articleId)
+        return article && !article.archivedAt ? [article] : []
+      })
+      .sort((firstArticle, secondArticle) => {
+        if (firstArticle.isPinned === secondArticle.isPinned) return 0
+        return firstArticle.isPinned ? -1 : 1
+      }),
   }))
 }
 

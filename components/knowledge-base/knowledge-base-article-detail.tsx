@@ -4,7 +4,6 @@ import * as React from "react"
 import {
   IconChevronDown,
   IconDots,
-  IconEye,
   IconPencil,
 } from "@tabler/icons-react"
 
@@ -182,49 +181,41 @@ function ArticleStatusPill({
 
 function KnowledgeArticleSaveBar({
   changesLabel,
-  isPreviewingDraft,
+  hasUnsavedChanges,
   onDiscard,
-  onPreviewToggle,
   onSave,
 }: {
   changesLabel: string
-  isPreviewingDraft: boolean
+  hasUnsavedChanges: boolean
   onDiscard: () => void
-  onPreviewToggle: () => void
   onSave: () => void
 }) {
+  const barActionButtonClass =
+    "h-8 rounded-lg px-2.5 text-[13px] text-inherit hover:bg-white/10 hover:text-inherit dark:hover:bg-black/8 dark:hover:text-inherit"
+
   return (
     <div className="pointer-events-none fixed inset-x-0 bottom-5 z-40 flex justify-center px-4">
-      <div className="pointer-events-auto flex w-full max-w-xl items-center justify-between gap-3 rounded-2xl border border-border bg-background/85 px-3 py-2 shadow-xl shadow-foreground/10 backdrop-blur-xl supports-[backdrop-filter]:bg-background/70">
-        <p className="min-w-0 truncate text-sm text-muted-foreground">
+      <div className="pointer-events-auto flex w-full max-w-xl items-center justify-between gap-3 rounded-2xl border border-zinc-800/90 bg-zinc-950 px-1.5 py-1.5 text-zinc-100 shadow-xl ring-1 ring-black/20 dark:border-zinc-300/80 dark:bg-zinc-100 dark:text-zinc-900 dark:ring-white/25">
+        <p className="min-w-0 truncate px-2 text-sm font-medium" aria-live="polite">
           {changesLabel}
         </p>
-        <div className="flex shrink-0 items-center gap-2">
+        <div className="flex shrink-0 items-center gap-1">
           <Button
             type="button"
             variant="ghost"
             size="sm"
-            className="rounded-xl"
-            onClick={onPreviewToggle}
-          >
-            <IconEye className="size-4" />
-            {isPreviewingDraft
-              ? knowledgeBasePageCopy.articleBackToEditorLabel
-              : knowledgeBasePageCopy.articlePreviewDraftLabel}
-          </Button>
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            className="rounded-xl"
+            className={barActionButtonClass}
             onClick={onDiscard}
           >
-            {knowledgeBasePageCopy.articleDiscardLabel}
+            {hasUnsavedChanges
+              ? knowledgeBasePageCopy.articleDiscardLabel
+              : knowledgeBasePageCopy.articleCancelLabel}
           </Button>
           <Button
             type="button"
             size="sm"
-            className="rounded-xl"
+            className="h-8 rounded-lg border border-white/15 bg-zinc-100 px-3 text-[13px] text-zinc-950 hover:bg-white disabled:border-white/15 disabled:bg-white/10 disabled:text-zinc-300 dark:border-black/10 dark:bg-zinc-900 dark:text-zinc-50 dark:hover:bg-black dark:disabled:border-black/10 dark:disabled:bg-black/8 dark:disabled:text-zinc-600"
+            disabled={!hasUnsavedChanges}
             onClick={onSave}
           >
             {knowledgeBasePageCopy.articleSaveLabel}
@@ -250,10 +241,9 @@ export function KnowledgeBaseArticleDetail({
     () => article.comments ?? []
   )
   const {
+    articleDocument,
     isEditing,
     setIsEditing,
-    isPreviewingDraft,
-    setIsPreviewingDraft,
     showDiscardDialog,
     setShowDiscardDialog,
     showSaveSuccess,
@@ -269,8 +259,6 @@ export function KnowledgeBaseArticleDetail({
     handleSave,
     handleCancel,
     handleTabChangeGuard,
-    displayedDocument,
-    displayedTitle,
     headerTitle,
   } = useKnowledgeArticleEditor({
     article,
@@ -312,7 +300,9 @@ export function KnowledgeBaseArticleDetail({
     onSaveArticleComments(article.id, comments)
   }
 
-  const changesLabel = formatArticleChangesLabel(changedFields)
+  const changesLabel = hasUnsavedChanges
+    ? formatArticleChangesLabel(changedFields)
+    : knowledgeBasePageCopy.articleNoChangesLabel
   const hasCommentRecords =
     article.comments !== undefined || articleComments.length > 0
   const commentsCount =
@@ -453,7 +443,7 @@ export function KnowledgeBaseArticleDetail({
         >
           <div className="scrollbar-hidden min-h-0 flex-1 overflow-y-auto">
             <div className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-6 py-8">
-              {isEditing && !isPreviewingDraft ? (
+              {isEditing ? (
                 <KnowledgeArticleEditor
                   article={article}
                   value={draftDocument}
@@ -462,12 +452,12 @@ export function KnowledgeBaseArticleDetail({
               ) : (
                 <KnowledgeArticleContentView
                   article={article}
-                  document={displayedDocument}
-                  title={displayedTitle.trim() || article.title}
+                  document={articleDocument}
+                  title={article.title}
                   showBodyHeading={false}
                 />
               )}
-              {isEditing && hasUnsavedChanges ? (
+              {isEditing ? (
                 <div className="h-20" aria-hidden />
               ) : null}
             </div>
@@ -511,14 +501,11 @@ export function KnowledgeBaseArticleDetail({
         confirmVariant="destructive"
         onConfirm={discardEdits}
       />
-      {isEditing && hasUnsavedChanges ? (
+      {isEditing ? (
         <KnowledgeArticleSaveBar
           changesLabel={changesLabel}
-          isPreviewingDraft={isPreviewingDraft}
+          hasUnsavedChanges={hasUnsavedChanges}
           onDiscard={handleCancel}
-          onPreviewToggle={() =>
-            setIsPreviewingDraft((isPreviewing) => !isPreviewing)
-          }
           onSave={handleSave}
         />
       ) : null}

@@ -5,8 +5,11 @@ import {
   IconBook2,
   IconChevronsLeft,
   IconChevronsRight,
+  IconArchive,
   IconCreditCard,
   IconFileText,
+  IconPin,
+  IconPinned,
   IconPlug,
   IconPlus,
   IconSearch,
@@ -18,6 +21,11 @@ import {
 import { knowledgeBasePageCopy } from "@/components/knowledge-base/knowledge-base-page.copy"
 import { filterGroupArticlesBySearch } from "@/lib/knowledge-base/articles"
 import { Button } from "@/components/ui/button"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import {
@@ -55,6 +63,8 @@ type KnowledgeBaseGroupPanelProps = {
     icon: KnowledgeArticleGroupIcon
   }) => void
   onCreateArticle: () => void
+  onToggleArticlePin: (articleId: string) => void
+  onArchiveArticle: (articleId: string) => void
 }
 
 type GroupIconOption = {
@@ -213,12 +223,15 @@ export function KnowledgeBaseGroupPanel({
   onSelectArticle,
   onCreateGroup,
   onCreateArticle,
+  onToggleArticlePin,
+  onArchiveArticle,
 }: KnowledgeBaseGroupPanelProps) {
   const [isCreatingGroup, setIsCreatingGroup] = React.useState(false)
   const [groupName, setGroupName] = React.useState("")
   const [groupIcon, setGroupIcon] =
     React.useState<KnowledgeArticleGroupIcon>("book")
   const [showNameError, setShowNameError] = React.useState(false)
+  const groupNameInputRef = React.useRef<HTMLInputElement | null>(null)
 
   const activeGroup =
     groups.find((group) => group.id === activeGroupId) ?? groups[0] ?? null
@@ -240,6 +253,22 @@ export function KnowledgeBaseGroupPanel({
     setGroupName("")
     setGroupIcon("book")
     setShowNameError(false)
+  }
+
+  React.useEffect(() => {
+    if (!isCreatingGroup) return
+
+    window.requestAnimationFrame(() => {
+      groupNameInputRef.current?.focus()
+    })
+  }, [isCreatingGroup])
+
+  const handleCreateOpenChange = (isOpen: boolean) => {
+    setIsCreatingGroup(isOpen)
+
+    if (!isOpen) {
+      resetCreateForm()
+    }
   }
 
   const handleCreateSubmit = (event: React.FormEvent<HTMLFormElement>) => {
@@ -326,8 +355,11 @@ export function KnowledgeBaseGroupPanel({
                 )
               })}
 
-              <Tooltip>
-                <TooltipTrigger
+              <DropdownMenu
+                open={isCreatingGroup}
+                onOpenChange={handleCreateOpenChange}
+              >
+                <DropdownMenuTrigger
                   render={
                     <Button
                       type="button"
@@ -335,61 +367,25 @@ export function KnowledgeBaseGroupPanel({
                       size="icon-sm"
                       className="size-9 rounded-xl"
                       aria-label={knowledgeBasePageCopy.createGroupLabel}
-                      onClick={() => {
-                        setIsCreatingGroup((isCreating) => !isCreating)
-                        if (!isPanelOpen) onTogglePanel()
-                      }}
                     />
                   }
                 >
                   <IconPlus className="size-4" />
-                </TooltipTrigger>
-                <TooltipContent side="right">
-                  {knowledgeBasePageCopy.createGroupLabel}
-                </TooltipContent>
-              </Tooltip>
-            </div>
-
-            <div className="min-h-0 flex-1" />
-          </div>
-
-          {isPanelOpen ? (
-            <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
-              <div className="flex min-h-14 min-w-0 shrink-0 items-center gap-2 overflow-hidden px-6 py-3.5">
-                <KnowledgeScrollingLabel className="flex-1 text-sm font-semibold text-foreground">
-                  {activeGroup?.label ?? knowledgeBasePageCopy.groupPanelLabel}
-                </KnowledgeScrollingLabel>
-                {activeGroup ? (
-                  <span className="shrink-0 text-xs text-muted-foreground">
-                    {activeGroup.articles.length}
-                  </span>
-                ) : null}
-              </div>
-
-              <div className="px-3 pb-2">
-                <div className="relative rounded-lg focus-within:ring-2 focus-within:ring-ring/45 focus-within:ring-offset-1 focus-within:ring-offset-background">
-                  <IconSearch className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
-                  <Input
-                    value={searchValue}
-                    onChange={(event) => onSearchChange(event.target.value)}
-                    placeholder={knowledgeBasePageCopy.searchPlaceholder}
-                    className="h-9 rounded-lg border-0 bg-transparent px-3 pl-9 shadow-none hover:bg-transparent focus-visible:border-transparent focus-visible:bg-transparent focus-visible:ring-0"
-                  />
-                </div>
-              </div>
-
-              <div className="scrollbar-hidden min-h-0 min-w-0 flex-1 overflow-y-auto px-3 pb-3">
-                {isCreatingGroup ? (
-                  <form
-                    className="mb-2 border-b px-1 py-3"
-                    onSubmit={handleCreateSubmit}
-                  >
+                </DropdownMenuTrigger>
+                <DropdownMenuContent
+                  side="right"
+                  align="start"
+                  sideOffset={8}
+                  className="w-72 p-3"
+                >
+                  <form onSubmit={handleCreateSubmit}>
                     <div className="space-y-3">
                       <div className="space-y-1.5">
                         <Label htmlFor="knowledge-base-group-name">
                           {knowledgeBasePageCopy.createGroupNameLabel}
                         </Label>
                         <Input
+                          ref={groupNameInputRef}
                           id="knowledge-base-group-name"
                           value={groupName}
                           onChange={(event) => {
@@ -467,27 +463,122 @@ export function KnowledgeBaseGroupPanel({
                       </div>
                     </div>
                   </form>
-                ) : null}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
 
+            <div className="min-h-0 flex-1" />
+          </div>
+
+          {isPanelOpen ? (
+            <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
+              <div className="flex min-h-14 min-w-0 shrink-0 items-center gap-2 overflow-hidden px-6 py-3.5">
+                <KnowledgeScrollingLabel className="flex-1 text-sm font-semibold text-foreground">
+                  {activeGroup?.label ?? knowledgeBasePageCopy.groupPanelLabel}
+                </KnowledgeScrollingLabel>
+                {activeGroup ? (
+                  <span className="shrink-0 text-xs text-muted-foreground">
+                    {activeGroup.articles.length}
+                  </span>
+                ) : null}
+              </div>
+
+              <div className="px-3 pb-2">
+                <div className="relative rounded-lg focus-within:ring-2 focus-within:ring-ring/45 focus-within:ring-offset-1 focus-within:ring-offset-background">
+                  <IconSearch className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
+                  <Input
+                    value={searchValue}
+                    onChange={(event) => onSearchChange(event.target.value)}
+                    placeholder={knowledgeBasePageCopy.searchPlaceholder}
+                    className="h-9 rounded-lg border-0 bg-transparent px-3 pl-9 shadow-none hover:bg-transparent focus-visible:border-transparent focus-visible:bg-transparent focus-visible:ring-0"
+                  />
+                </div>
+              </div>
+
+              <div className="scrollbar-hidden min-h-0 min-w-0 flex-1 overflow-y-auto px-3 pb-3">
                 {activeGroup && visibleArticles.length > 0 ? (
                   <div className="min-w-0 space-y-1">
                     {visibleArticles.map((article) => {
                       const isActive = selectedArticleId === article.id
+                      const PinIcon = article.isPinned ? IconPinned : IconPin
 
                       return (
-                        <Button
+                        <div
                           key={article.id}
-                          type="button"
-                          variant={isActive ? "secondary" : "ghost"}
-                          className="h-10 w-full min-w-0 justify-start gap-2.5 overflow-hidden rounded-xl px-3.5 text-left whitespace-normal"
-                          aria-pressed={isActive}
-                          onClick={() => onSelectArticle(article.id)}
+                          className="group/article-item relative min-w-0"
                         >
-                          <IconFileText className="size-4 shrink-0 text-muted-foreground" />
-                          <KnowledgeScrollingLabel className="flex-1 text-sm leading-none">
-                            {article.title}
-                          </KnowledgeScrollingLabel>
-                        </Button>
+                          <Button
+                            type="button"
+                            variant={isActive ? "secondary" : "ghost"}
+                            className="h-10 w-full min-w-0 justify-start gap-2.5 overflow-hidden rounded-xl px-3.5 text-left whitespace-normal transition-[padding] group-focus-within/article-item:pr-17 group-hover/article-item:pr-17"
+                            aria-pressed={isActive}
+                            onClick={() => onSelectArticle(article.id)}
+                          >
+                            <IconFileText className="size-4 shrink-0 text-muted-foreground" />
+                            {article.isPinned ? (
+                              <IconPinned className="size-3.5 shrink-0 text-muted-foreground" />
+                            ) : null}
+                            <KnowledgeScrollingLabel className="flex-1 text-sm leading-none">
+                              {article.title}
+                            </KnowledgeScrollingLabel>
+                          </Button>
+
+                          <div className="pointer-events-none absolute top-1/2 right-1.5 flex -translate-y-1/2 items-center gap-0.5 opacity-0 transition-opacity group-focus-within/article-item:pointer-events-auto group-focus-within/article-item:opacity-100 group-hover/article-item:pointer-events-auto group-hover/article-item:opacity-100">
+                            <Tooltip>
+                              <TooltipTrigger
+                                render={
+                                  <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="icon-xs"
+                                    className="size-7 rounded-lg text-muted-foreground"
+                                    aria-label={
+                                      article.isPinned
+                                        ? knowledgeBasePageCopy.unpinArticleLabel
+                                        : knowledgeBasePageCopy.pinArticleLabel
+                                    }
+                                    onClick={(event) => {
+                                      event.stopPropagation()
+                                      onToggleArticlePin(article.id)
+                                    }}
+                                  />
+                                }
+                              >
+                                <PinIcon className="size-3.5" />
+                              </TooltipTrigger>
+                              <TooltipContent side="top">
+                                {article.isPinned
+                                  ? knowledgeBasePageCopy.unpinArticleLabel
+                                  : knowledgeBasePageCopy.pinArticleLabel}
+                              </TooltipContent>
+                            </Tooltip>
+
+                            <Tooltip>
+                              <TooltipTrigger
+                                render={
+                                  <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="icon-xs"
+                                    className="size-7 rounded-lg text-muted-foreground"
+                                    aria-label={
+                                      knowledgeBasePageCopy.archiveArticleLabel
+                                    }
+                                    onClick={(event) => {
+                                      event.stopPropagation()
+                                      onArchiveArticle(article.id)
+                                    }}
+                                  />
+                                }
+                              >
+                                <IconArchive className="size-3.5" />
+                              </TooltipTrigger>
+                              <TooltipContent side="top">
+                                {knowledgeBasePageCopy.archiveArticleLabel}
+                              </TooltipContent>
+                            </Tooltip>
+                          </div>
+                        </div>
                       )
                     })}
                   </div>

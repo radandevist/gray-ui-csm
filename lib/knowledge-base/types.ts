@@ -96,6 +96,8 @@ export type KnowledgeArticle = {
   commentsCount?: number
   activity?: KnowledgeArticleActivity[]
   activityCount?: number
+  isPinned?: boolean
+  archivedAt?: string
 }
 
 export type KnowledgeArticleExplorerGroup = {

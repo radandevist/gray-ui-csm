@@ -34,7 +34,6 @@ export function useKnowledgeArticleEditor({
     [article]
   )
   const [isEditing, setIsEditing] = React.useState(false)
-  const [isPreviewingDraft, setIsPreviewingDraft] = React.useState(false)
   const [showDiscardDialog, setShowDiscardDialog] = React.useState(false)
   const [showSaveSuccess, setShowSaveSuccess] = React.useState(false)
   const [draftDocument, setDraftDocument] = React.useState(articleDocument)
@@ -83,7 +82,6 @@ export function useKnowledgeArticleEditor({
     setDraftDocument(articleDocument)
     setDraftTitle(article.title)
     setDraftStatus(article.status)
-    setIsPreviewingDraft(false)
   }, [article.status, article.title, articleDocument])
 
   const discardEdits = React.useCallback(() => {
@@ -139,7 +137,6 @@ export function useKnowledgeArticleEditor({
   const handleSave = React.useCallback(() => {
     if (!hasUnsavedChanges) {
       setIsEditing(false)
-      setIsPreviewingDraft(false)
       return
     }
 
@@ -153,7 +150,6 @@ export function useKnowledgeArticleEditor({
       customerReply,
     })
     setIsEditing(false)
-    setIsPreviewingDraft(false)
     setShowSaveSuccess(true)
   }, [
     article.customerReply,
@@ -187,8 +183,6 @@ export function useKnowledgeArticleEditor({
     articleDocument,
     isEditing,
     setIsEditing,
-    isPreviewingDraft,
-    setIsPreviewingDraft,
     showDiscardDialog,
     setShowDiscardDialog,
     showSaveSuccess,

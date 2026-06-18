@@ -28,6 +28,7 @@ import type {
 type PendingNavigationAction =
   | { type: "select-article"; articleId: string }
   | { type: "create-article" }
+  | { type: "archive-article"; articleId: string }
 
 function normalizeSelectedArticleId(
   value: string | null,
@@ -48,6 +49,32 @@ function normalizeArticleDetailTab(value: string | null): ArticleDetailTab {
   }
 
   return "content"
+}
+
+function getArticleFallbackAfterArchive(
+  articleGroups: ReturnType<typeof getKnowledgeArticleExplorerGroups>,
+  articleId: string
+) {
+  const articleGroup = articleGroups.find((group) =>
+    group.articles.some((article) => article.id === articleId)
+  )
+
+  if (articleGroup) {
+    const articleIndex = articleGroup.articles.findIndex(
+      (article) => article.id === articleId
+    )
+    const sameGroupFallback =
+      articleGroup.articles[articleIndex + 1] ??
+      articleGroup.articles[articleIndex - 1]
+
+    if (sameGroupFallback) return sameGroupFallback.id
+  }
+
+  return (
+    articleGroups
+      .flatMap((group) => group.articles)
+      .find((article) => article.id !== articleId)?.id ?? null
+  )
 }
 
 export function useKnowledgeBasePageState() {
@@ -239,19 +266,6 @@ export function useKnowledgeBasePageState() {
     createArticleInActiveGroup()
   }, [activeGroupId, createArticleInActiveGroup, hasUnsavedArticleChanges])
 
-  const handleConfirmPendingNavigation = React.useCallback(() => {
-    if (!pendingNavigationAction) return
-
-    if (pendingNavigationAction.type === "select-article") {
-      navigateToArticle(pendingNavigationAction.articleId)
-    } else {
-      createArticleInActiveGroup()
-    }
-
-    setPendingNavigationAction(null)
-    setHasUnsavedArticleChanges(false)
-  }, [createArticleInActiveGroup, navigateToArticle, pendingNavigationAction])
-
   const handleDismissPendingNavigation = React.useCallback(() => {
     setPendingNavigationAction(null)
   }, [])
@@ -270,6 +284,77 @@ export function useKnowledgeBasePageState() {
     },
     [groupDefinitions]
   )
+
+  const handleToggleArticlePin = React.useCallback((articleId: string) => {
+    setArticles((currentArticles) =>
+      currentArticles.map((article) =>
+        article.id === articleId
+          ? {
+              ...article,
+              isPinned: !article.isPinned,
+            }
+          : article
+      )
+    )
+  }, [])
+
+  const archiveArticle = React.useCallback(
+    (articleId: string) => {
+      const fallbackArticleId =
+        selectedArticleId === articleId
+          ? getArticleFallbackAfterArchive(articleGroups, articleId)
+          : null
+
+      setArticles((currentArticles) =>
+        currentArticles.map((article) =>
+          article.id === articleId
+            ? {
+                ...article,
+                archivedAt: new Date().toISOString(),
+              }
+            : article
+        )
+      )
+
+      if (selectedArticleId === articleId) {
+        setHasUnsavedArticleChanges(false)
+        replaceQuery({ article: fallbackArticleId, articleTab: "content" })
+      }
+    },
+    [articleGroups, replaceQuery, selectedArticleId]
+  )
+
+  const handleArchiveArticle = React.useCallback(
+    (articleId: string) => {
+      if (articleId === selectedArticleId && hasUnsavedArticleChanges) {
+        setPendingNavigationAction({ type: "archive-article", articleId })
+        return
+      }
+
+      archiveArticle(articleId)
+    },
+    [archiveArticle, hasUnsavedArticleChanges, selectedArticleId]
+  )
+
+  const handleConfirmPendingNavigation = React.useCallback(() => {
+    if (!pendingNavigationAction) return
+
+    if (pendingNavigationAction.type === "select-article") {
+      navigateToArticle(pendingNavigationAction.articleId)
+    } else if (pendingNavigationAction.type === "create-article") {
+      createArticleInActiveGroup()
+    } else {
+      archiveArticle(pendingNavigationAction.articleId)
+    }
+
+    setPendingNavigationAction(null)
+    setHasUnsavedArticleChanges(false)
+  }, [
+    archiveArticle,
+    createArticleInActiveGroup,
+    navigateToArticle,
+    pendingNavigationAction,
+  ])
 
   const handleSaveArticle = React.useCallback(
     (articleId: string, patch: KnowledgeArticleSavePatch) => {
@@ -336,6 +421,8 @@ export function useKnowledgeBasePageState() {
     handleSelectArticle,
     handleCreateArticle,
     handleCreateGroup,
+    handleToggleArticlePin,
+    handleArchiveArticle,
     handleSaveArticle,
     handleSaveArticleComments,
     handleConfirmPendingNavigation,
